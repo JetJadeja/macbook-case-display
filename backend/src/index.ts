@@ -22,7 +22,7 @@ app.get('/api/game', (req: Request, res: Response) => {
 /**
  * POST /api/join
  * Join a team
- * Body: { name: string, team: 'left' | 'right' }
+ * Body: { name: string, team: 'iovine' | 'young' }
  */
 app.post('/api/join', (req: Request, res: Response) => {
   const { name, team } = req.body;
@@ -31,8 +31,8 @@ app.post('/api/join', (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Name is required' });
   }
 
-  if (team !== 'left' && team !== 'right') {
-    return res.status(400).json({ error: 'Team must be "left" or "right"' });
+  if (team !== 'iovine' && team !== 'young') {
+    return res.status(400).json({ error: 'Team must be "iovine" or "young"' });
   }
 
   const player = gameManager.joinGame(name.trim(), team as Team);
@@ -63,6 +63,27 @@ app.post('/api/click', (req: Request, res: Response) => {
   }
 
   res.json({ scores: result.scores });
+});
+
+/**
+ * POST /api/heartbeat
+ * Update player's last seen timestamp
+ * Body: { playerId: string }
+ */
+app.post('/api/heartbeat', (req: Request, res: Response) => {
+  const { playerId } = req.body;
+
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'Player ID is required' });
+  }
+
+  const success = gameManager.updateHeartbeat(playerId);
+
+  if (!success) {
+    return res.status(404).json({ error: 'Player not found' });
+  }
+
+  res.json({ success: true });
 });
 
 /**

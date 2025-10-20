@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -10,37 +10,49 @@ import {
 import { Button } from "../components/ui/button";
 
 interface Scores {
-  left: number;
-  right: number;
+  iovine: number;
+  young: number;
 }
 
 function Game() {
   const navigate = useNavigate();
-  const [scores, setScores] = useState<Scores>({ left: 0, right: 0 });
+  const location = useLocation();
+  const [scores, setScores] = useState<Scores>({ iovine: 0, young: 0 });
   const [clicks, setClicks] = useState(0);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
-  const [playerTeam, setPlayerTeam] = useState<"left" | "right" | null>(null);
+  const [playerTeam, setPlayerTeam] = useState<"iovine" | "young" | null>(null);
 
   useEffect(() => {
-    // Get player info from localStorage
-    const id = localStorage.getItem("playerId");
-    const name = localStorage.getItem("playerName");
-    const team = localStorage.getItem("playerTeam") as "left" | "right" | null;
+    // Get player info from navigation state
+    const state = location.state as {
+      playerId?: string;
+      playerName?: string;
+      playerTeam?: "iovine" | "young";
+    } | null;
 
-    if (!id || !name || !team) {
+    if (!state?.playerId || !state?.playerName || !state?.playerTeam) {
       // Redirect back to home if no player info
       navigate("/");
       return;
     }
 
-    setPlayerId(id);
-    setPlayerName(name);
-    setPlayerTeam(team);
+    setPlayerId(state.playerId);
+    setPlayerName(state.playerName);
+    setPlayerTeam(state.playerTeam);
 
     // Fetch initial game state
     fetchGameState();
-  }, [navigate]);
+
+    // Send heartbeat every 3 seconds to let server know we're still here
+    const heartbeatInterval = setInterval(() => {
+      if (state.playerId) {
+        sendHeartbeat(state.playerId);
+      }
+    }, 3000);
+
+    return () => clearInterval(heartbeatInterval);
+  }, [navigate, location]);
 
   const fetchGameState = async () => {
     try {
@@ -49,6 +61,18 @@ function Game() {
       setScores(data.scores);
     } catch (error) {
       console.error("Failed to fetch game state:", error);
+    }
+  };
+
+  const sendHeartbeat = async (id: string) => {
+    try {
+      await fetch("http://localhost:3001/api/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId: id }),
+      });
+    } catch (error) {
+      console.error("Failed to send heartbeat:", error);
     }
   };
 
@@ -70,14 +94,14 @@ function Game() {
     }
   };
 
-  const teamColor = playerTeam === "left" ? "blue" : "red";
+  const teamColor = playerTeam === "iovine" ? "blue" : "red";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
       <div className="w-full max-w-4xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-bold text-white">Tug of War</h1>
+          <h1 className="text-5xl font-bold text-white">Iovine vs. Young</h1>
           <p className="text-xl text-gray-300">
             Welcome, <span className="font-bold">{playerName}</span>!
           </p>
@@ -95,19 +119,19 @@ function Game() {
         <div className="grid grid-cols-2 gap-6">
           <Card
             className={`${
-              playerTeam === "left"
+              playerTeam === "iovine"
                 ? "bg-blue-950 border-blue-800 ring-4 ring-blue-500"
                 : "bg-blue-950 border-blue-800"
             }`}
           >
             <CardHeader>
               <CardTitle className="text-3xl text-blue-300">
-                Team Left {playerTeam === "left" && "(You)"}
+                Iovine {playerTeam === "iovine" && "(You)"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-6xl font-bold text-blue-400">
-                {scores.left}
+                {scores.iovine}
               </div>
               <div className="text-sm text-blue-200 mt-2">clicks</div>
             </CardContent>
@@ -115,19 +139,19 @@ function Game() {
 
           <Card
             className={`${
-              playerTeam === "right"
+              playerTeam === "young"
                 ? "bg-red-950 border-red-800 ring-4 ring-red-500"
                 : "bg-red-950 border-red-800"
             }`}
           >
             <CardHeader>
               <CardTitle className="text-3xl text-red-300">
-                Team Right {playerTeam === "right" && "(You)"}
+                Young {playerTeam === "young" && "(You)"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-6xl font-bold text-red-400">
-                {scores.right}
+                {scores.young}
               </div>
               <div className="text-sm text-red-200 mt-2">clicks</div>
             </CardContent>
@@ -162,12 +186,7 @@ function Game() {
         <div className="text-center">
           <Button
             variant="outline"
-            onClick={() => {
-              localStorage.removeItem("playerId");
-              localStorage.removeItem("playerName");
-              localStorage.removeItem("playerTeam");
-              navigate("/");
-            }}
+            onClick={() => navigate("/")}
             className="text-gray-400 hover:text-white"
           >
             Leave Game

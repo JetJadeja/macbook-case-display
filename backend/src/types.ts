@@ -1,17 +1,18 @@
-export type Team = 'left' | 'right';
+export type Team = 'iovine' | 'young';
 
 export interface Player {
   id: string;
   name: string;
   team: Team;
   clicks: number;
+  lastSeen: number; // timestamp in milliseconds
 }
 
 export interface GameState {
   players: Map<string, Player>;
   scores: {
-    left: number;
-    right: number;
+    iovine: number;
+    young: number;
   };
   status: 'waiting' | 'active' | 'ended';
   winner: Team | null;
@@ -19,12 +20,12 @@ export interface GameState {
 
 export interface GameStateResponse {
   players: {
-    left: Array<{ name: string; clicks: number }>;
-    right: Array<{ name: string; clicks: number }>;
+    iovine: Array<{ name: string; clicks: number }>;
+    young: Array<{ name: string; clicks: number }>;
   };
   scores: {
-    left: number;
-    right: number;
+    iovine: number;
+    young: number;
   };
   status: 'waiting' | 'active' | 'ended';
   winner: Team | null;
