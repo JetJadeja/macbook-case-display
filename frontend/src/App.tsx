@@ -1,9 +1,14 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
-import { Button } from './components/ui/button';
-import { Input } from './components/ui/input';
-import { Label } from './components/ui/label';
-import './App.css';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./components/ui/card";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Label } from "./components/ui/label";
 
 /**
  * CaseCanvas Application
@@ -11,7 +16,7 @@ import './App.css';
  * Simple name input form for e-ink display
  */
 function App() {
-  const [name, setName] = useState<string>('');
+  const [name, setName] = useState<string>("");
   const [submitted, setSubmitted] = useState<boolean>(false);
 
   /**
@@ -20,12 +25,12 @@ function App() {
   const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
     if (name.trim()) {
-      console.log('Submitted name:', name);
+      console.log("Submitted name:", name);
       setSubmitted(true);
 
       // Reset after 3 seconds
       setTimeout(() => {
-        setName('');
+        setName("");
         setSubmitted(false);
       }, 3000);
     }
@@ -68,7 +73,9 @@ function App() {
                 id="name"
                 type="text"
                 value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
                 placeholder="Enter your name"
                 required
                 autoFocus
