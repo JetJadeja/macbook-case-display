@@ -7,6 +7,10 @@ class GameManager {
     iovine: number | null;
     young: number | null;
   };
+  private hasHadPlayers: {
+    iovine: boolean;
+    young: boolean;
+  };
 
   constructor() {
     this.state = {
@@ -18,6 +22,10 @@ class GameManager {
     this.emptyTeamTimers = {
       iovine: null,
       young: null
+    };
+    this.hasHadPlayers = {
+      iovine: false,
+      young: false
     };
   }
 
@@ -34,6 +42,9 @@ class GameManager {
     };
 
     this.state.players.set(player.id, player);
+
+    // Mark that this team has had players
+    this.hasHadPlayers[team] = true;
 
     // Start game if not already active
     if (this.state.status === 'waiting') {
@@ -96,38 +107,81 @@ class GameManager {
       .filter(p => p.team === 'young' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
       .map(p => ({ name: p.name, clicks: p.clicks }));
 
+    let resetCountdown: number | undefined = undefined;
+
     // Check for empty teams and track timing
-    if (iovinePlayers.length === 0) {
+    // ONLY trigger countdown if team HAD players before (not just starting empty)
+    if (iovinePlayers.length === 0 && this.hasHadPlayers.iovine) {
       if (this.emptyTeamTimers.iovine === null) {
         this.emptyTeamTimers.iovine = now;
-      } else if (now - this.emptyTeamTimers.iovine >= EMPTY_TEAM_RESET_THRESHOLD) {
-        console.log('Team Iovine empty for 15+ seconds, resetting game...');
-        this.resetGame();
+      } else {
+        const elapsed = now - this.emptyTeamTimers.iovine;
+        if (elapsed >= EMPTY_TEAM_RESET_THRESHOLD) {
+          console.log('Team Iovine empty for 15+ seconds, resetting game...');
+          this.resetGame();
+        } else {
+          // Calculate countdown
+          const remaining = EMPTY_TEAM_RESET_THRESHOLD - elapsed;
+          resetCountdown = Math.ceil(remaining / 1000);
+        }
       }
     } else {
       this.emptyTeamTimers.iovine = null;
     }
 
-    if (youngPlayers.length === 0) {
+    if (youngPlayers.length === 0 && this.hasHadPlayers.young) {
       if (this.emptyTeamTimers.young === null) {
         this.emptyTeamTimers.young = now;
-      } else if (now - this.emptyTeamTimers.young >= EMPTY_TEAM_RESET_THRESHOLD) {
-        console.log('Team Young empty for 15+ seconds, resetting game...');
-        this.resetGame();
+      } else {
+        const elapsed = now - this.emptyTeamTimers.young;
+        if (elapsed >= EMPTY_TEAM_RESET_THRESHOLD) {
+          console.log('Team Young empty for 15+ seconds, resetting game...');
+          this.resetGame();
+        } else {
+          // Calculate countdown
+          const remaining = EMPTY_TEAM_RESET_THRESHOLD - elapsed;
+          const countdown = Math.ceil(remaining / 1000);
+          // Use the smallest countdown if both teams are empty
+          resetCountdown = resetCountdown !== undefined ? Math.min(resetCountdown, countdown) : countdown;
+        }
       }
     } else {
       this.emptyTeamTimers.young = null;
     }
 
-    return {
+    // Determine game status based on player activity
+    let status: 'waiting' | 'active' | 'ended' | 'ending';
+
+    const hasAnyCurrentPlayers = iovinePlayers.length > 0 || youngPlayers.length > 0;
+    const hasEverHadPlayers = this.hasHadPlayers.iovine || this.hasHadPlayers.young;
+    const inCountdown = resetCountdown !== undefined;
+
+    if (!hasEverHadPlayers && !hasAnyCurrentPlayers) {
+      // Game hasn't started yet - no players have ever joined
+      status = 'waiting';
+    } else if (inCountdown) {
+      // Countdown active - team(s) abandoned
+      status = 'ending';
+    } else {
+      // Normal gameplay
+      status = 'active';
+    }
+
+    const response: GameStateResponse = {
       players: {
         iovine: iovinePlayers,
         young: youngPlayers
       },
       scores: this.state.scores,
-      status: this.state.status,
+      status,
       winner: this.state.winner
     };
+
+    if (resetCountdown !== undefined) {
+      response.resetCountdown = resetCountdown;
+    }
+
+    return response;
   }
 
   /**
@@ -143,6 +197,10 @@ class GameManager {
     this.emptyTeamTimers = {
       iovine: null,
       young: null
+    };
+    this.hasHadPlayers = {
+      iovine: false,
+      young: false
     };
   }
 }

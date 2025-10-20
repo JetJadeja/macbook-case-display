@@ -22,6 +22,7 @@ interface GameState {
   };
   status: string;
   winner: string | null;
+  resetCountdown?: number;
 }
 
 function Home() {
@@ -143,9 +144,27 @@ function Home() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <div className="text-xl text-gray-300 capitalize">
-                  {gameState.status}
-                </div>
+                {gameState.status === "ending" && gameState.resetCountdown ? (
+                  <>
+                    <div className="text-xl text-red-400 font-bold capitalize">
+                      Ending
+                    </div>
+                    <div className="text-4xl text-red-500 font-bold mt-2">
+                      {gameState.resetCountdown}
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      seconds until reset
+                    </div>
+                  </>
+                ) : gameState.status === "waiting" ? (
+                  <div className="text-xl text-gray-400">
+                    Waiting to Start
+                  </div>
+                ) : (
+                  <div className="text-xl text-green-400 font-semibold capitalize">
+                    {gameState.status}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

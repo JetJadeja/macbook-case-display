@@ -66,11 +66,17 @@ function Game() {
 
   const sendHeartbeat = async (id: string) => {
     try {
-      await fetch("http://localhost:3001/api/heartbeat", {
+      const response = await fetch("http://localhost:3001/api/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId: id }),
       });
+
+      // If player not found (kicked/reset), redirect to home
+      if (response.status === 404) {
+        console.log("Player kicked from game, redirecting to home...");
+        navigate("/");
+      }
     } catch (error) {
       console.error("Failed to send heartbeat:", error);
     }
@@ -85,6 +91,13 @@ function Game() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
       });
+
+      // If player not found (kicked/reset), redirect to home
+      if (response.status === 404) {
+        console.log("Player kicked from game, redirecting to home...");
+        navigate("/");
+        return;
+      }
 
       const data = await response.json();
       setScores(data.scores);

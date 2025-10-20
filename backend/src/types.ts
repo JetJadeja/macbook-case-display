@@ -27,6 +27,7 @@ export interface GameStateResponse {
     iovine: number;
     young: number;
   };
-  status: 'waiting' | 'active' | 'ended';
+  status: 'waiting' | 'active' | 'ended' | 'ending';
   winner: Team | null;
+  resetCountdown?: number; // seconds remaining before reset
 }
