@@ -59,7 +59,9 @@ export function ClickButton({
       {/* Main button */}
       <button
         onClick={handleClick}
-        className={`relative w-full h-64 rounded-2xl border-8 ${theme.border} bg-gradient-to-br ${theme.gradient}
+        className={`relative w-full h-64 rounded-2xl border-8 ${
+          theme.border
+        } bg-gradient-to-br ${theme.gradient}
           transform transition-all duration-150
           ${isPressed ? "scale-95 shadow-lg" : "scale-100 shadow-2xl"}
           ${theme.glow}
@@ -72,27 +74,34 @@ export function ClickButton({
         </div>
 
         {/* Corner accents */}
-        <div className={`absolute top-4 left-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping`}></div>
-        <div className={`absolute top-4 right-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-100`}></div>
-        <div className={`absolute bottom-4 left-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-200`}></div>
-        <div className={`absolute bottom-4 right-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-300`}></div>
+        <div
+          className={`absolute top-4 left-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping`}
+        ></div>
+        <div
+          className={`absolute top-4 right-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-100`}
+        ></div>
+        <div
+          className={`absolute bottom-4 left-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-200`}
+        ></div>
+        <div
+          className={`absolute bottom-4 right-4 w-4 h-4 ${theme.pulse} rounded-full animate-ping delay-300`}
+        ></div>
 
         {/* Content */}
-        <div className="relative z-10 h-full flex flex-col items-center justify-center space-y-4">
+        <div className="relative z-10 h-full flex flex-col items-center justify-center gap-6 px-8">
           {/* Main text */}
-          <div className="space-y-2">
-            <div className={`text-7xl font-bold ${theme.text} tracking-wider glitch-text`}>
-              CLICK!
-            </div>
-            <div className="text-sm text-white/80 tracking-[0.3em] uppercase">
-              ▶ Fire! ◀
-            </div>
+          <div
+            className={`text-6xl md:text-5xl font-bold ${theme.text} tracking-wider glitch-text`}
+          >
+            CLICK!
           </div>
 
           {/* Click count */}
-          <div className="absolute bottom-6 bg-black/40 px-6 py-3 rounded-lg border-2 border-white/30">
-            <div className="text-xs text-white/60 mb-1 tracking-wider">YOUR CLICKS</div>
-            <div className={`text-3xl font-bold ${theme.text} tabular-nums`}>
+          <div className="bg-black/50 px-8 py-4 rounded-lg border-2 border-white/30 backdrop-blur-sm">
+            <div className="text-xs text-white/70 mb-1 tracking-widest text-center">
+              YOUR CLICKS
+            </div>
+            <div className={`text-4xl font-bold ${theme.text} tabular-nums`}>
               {personalClicks.toString().padStart(4, "0")}
             </div>
           </div>
