@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import TextBox from './TextBox';
 import './Canvas.css';
 
@@ -18,15 +18,16 @@ import './Canvas.css';
  * @param {string} props.textColor - Current text color for new text boxes
  * @param {number} props.fontSize - Current font size for new text boxes
  * @param {Function} props.onDataChange - Callback when canvas data changes
+ * @param {React.Ref} ref - Forwarded ref to expose methods to parent
  */
-const Canvas = ({
+const Canvas = forwardRef(({
   currentTool,
   brushColor,
   brushSize,
   textColor,
   fontSize,
   onDataChange
-}) => {
+}, ref) => {
   // ===== REFS =====
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
@@ -114,41 +115,26 @@ const Canvas = ({
 
   /**
    * Start drawing on mouse down
-   * In draw mode: begins a new path
-   * In text mode: creates a new text box
+   * Begins a new drawing path
    */
   const startDrawing = useCallback((event) => {
-    if (currentTool === 'draw') {
-      const pos = getMousePosition(event);
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(pos.x, pos.y);
-      setIsDrawing(true);
-    } else if (currentTool === 'text') {
-      // Create new text box at click position
-      const pos = getMousePosition(event);
-      const newTextBox = {
-        id: nextTextBoxId,
-        text: '',
-        position: { x: pos.x, y: pos.y },
-        color: textColor,
-        fontSize: fontSize
-      };
-      setTextBoxes(prev => [...prev, newTextBox]);
-      setNextTextBoxId(prev => prev + 1);
-    }
-  }, [currentTool, getMousePosition, textColor, fontSize, nextTextBoxId]);
+    const pos = getMousePosition(event);
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
+  }, [getMousePosition]);
 
   /**
    * Draw as mouse moves
    * Only active when isDrawing is true
    */
   const draw = useCallback((event) => {
-    if (!isDrawing || currentTool !== 'draw') return;
+    if (!isDrawing) return;
 
     const pos = getMousePosition(event);
     contextRef.current.lineTo(pos.x, pos.y);
     contextRef.current.stroke();
-  }, [isDrawing, currentTool, getMousePosition]);
+  }, [isDrawing, getMousePosition]);
 
   /**
    * Stop drawing on mouse up
@@ -173,33 +159,20 @@ const Canvas = ({
    */
   const startTouchDrawing = useCallback((event) => {
     event.preventDefault();
-    if (currentTool === 'draw') {
-      const pos = getTouchPosition(event);
-      contextRef.current.beginPath();
-      contextRef.current.moveTo(pos.x, pos.y);
-      setIsDrawing(true);
-    } else if (currentTool === 'text') {
-      const pos = getTouchPosition(event);
-      const newTextBox = {
-        id: nextTextBoxId,
-        text: '',
-        position: { x: pos.x, y: pos.y },
-        color: textColor,
-        fontSize: fontSize
-      };
-      setTextBoxes(prev => [...prev, newTextBox]);
-      setNextTextBoxId(prev => prev + 1);
-    }
-  }, [currentTool, getTouchPosition, textColor, fontSize, nextTextBoxId]);
+    const pos = getTouchPosition(event);
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(pos.x, pos.y);
+    setIsDrawing(true);
+  }, [getTouchPosition]);
 
   const touchDraw = useCallback((event) => {
-    if (!isDrawing || currentTool !== 'draw') return;
+    if (!isDrawing) return;
     event.preventDefault();
 
     const pos = getTouchPosition(event);
     contextRef.current.lineTo(pos.x, pos.y);
     contextRef.current.stroke();
-  }, [isDrawing, currentTool, getTouchPosition]);
+  }, [isDrawing, getTouchPosition]);
 
   const stopTouchDrawing = useCallback((event) => {
     if (isDrawing) {
@@ -257,12 +230,45 @@ const Canvas = ({
     }
   }, [onDataChange]);
 
-  // Expose clearCanvas method to parent via ref
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.clearCanvas = clearCanvas;
-    }
-  }, [clearCanvas]);
+  /**
+   * Create a new text box at a smart default position
+   * Uses cascading offset to avoid overlapping text boxes
+   */
+  const createTextBox = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Start at center of canvas
+    const baseX = canvas.width / 2 - 50;
+    const baseY = canvas.height / 2 - 20;
+
+    // Add cascading offset based on number of existing text boxes
+    // Each new box is offset by 20px down and right
+    const offset = textBoxes.length * 20;
+
+    const newTextBox = {
+      id: nextTextBoxId,
+      text: '',
+      position: {
+        x: baseX + offset,
+        y: baseY + offset
+      },
+      color: textColor,
+      fontSize: fontSize
+    };
+
+    setTextBoxes(prev => [...prev, newTextBox]);
+    setNextTextBoxId(prev => prev + 1);
+  }, [textBoxes.length, nextTextBoxId, textColor, fontSize]);
+
+  /**
+   * Expose methods to parent component via ref
+   * This allows parent to call clearCanvas() and createTextBox()
+   */
+  useImperativeHandle(ref, () => ({
+    clearCanvas,
+    createTextBox
+  }), [clearCanvas, createTextBox]);
 
   return (
     <div
@@ -281,7 +287,7 @@ const Canvas = ({
         onTouchMove={touchDraw}
         onTouchEnd={stopTouchDrawing}
         style={{
-          cursor: currentTool === 'draw' ? 'crosshair' : 'text'
+          cursor: 'crosshair'
         }}
       />
 
@@ -300,6 +306,9 @@ const Canvas = ({
       ))}
     </div>
   );
-};
+});
+
+// Display name for debugging
+Canvas.displayName = 'Canvas';
 
 export default Canvas;

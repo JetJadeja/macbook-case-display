@@ -221,6 +221,30 @@
   min-height: 80px;
 }
 
+/* Add Text Box button */
+.add-textbox-button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 10px;
+}
+
+.add-textbox-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.add-textbox-button:active {
+  transform: translateY(0);
+}
+
 /* Clear button */
 .clear-button {
   width: 100%;

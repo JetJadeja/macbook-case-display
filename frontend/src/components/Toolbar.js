@@ -6,14 +6,12 @@ import './Toolbar.css';
  *
  * Control panel for all drawing and text tools
  * Features:
- * - Tool mode selection (Draw / Text)
- * - Color pickers (brush and text)
- * - Size controls (brush size and font size)
+ * - Brush color and size controls
+ * - Add text box button
+ * - Text color and font size controls
  * - Clear canvas button
  *
  * @param {Object} props
- * @param {string} props.currentTool - Active tool ('draw' or 'text')
- * @param {Function} props.onToolChange - Callback when tool changes
  * @param {string} props.brushColor - Current brush color
  * @param {Function} props.onBrushColorChange - Callback when brush color changes
  * @param {number} props.brushSize - Current brush size (1-50)
@@ -22,11 +20,10 @@ import './Toolbar.css';
  * @param {Function} props.onTextColorChange - Callback when text color changes
  * @param {number} props.fontSize - Current font size (8-72)
  * @param {Function} props.onFontSizeChange - Callback when font size changes
+ * @param {Function} props.onAddTextBox - Callback to add a new text box
  * @param {Function} props.onClear - Callback to clear canvas
  */
 const Toolbar = ({
-  currentTool,
-  onToolChange,
   brushColor,
   onBrushColorChange,
   brushSize,
@@ -35,6 +32,7 @@ const Toolbar = ({
   onTextColorChange,
   fontSize,
   onFontSizeChange,
+  onAddTextBox,
   onClear
 }) => {
   /**
@@ -57,155 +55,132 @@ const Toolbar = ({
 
   return (
     <div className="toolbar">
-      {/* ===== TOOL SELECTION ===== */}
+      {/* ===== DRAWING CONTROLS ===== */}
       <div className="toolbar-section">
-        <h3 className="toolbar-title">Tool</h3>
-        <div className="tool-buttons">
-          <button
-            className={`tool-button ${currentTool === 'draw' ? 'active' : ''}`}
-            onClick={() => onToolChange('draw')}
-            title="Draw freehand"
-          >
-            <span className="tool-icon">✏️</span>
-            Draw
-          </button>
-          <button
-            className={`tool-button ${currentTool === 'text' ? 'active' : ''}`}
-            onClick={() => onToolChange('text')}
-            title="Add text"
-          >
-            <span className="tool-icon">T</span>
-            Text
-          </button>
+        <h3 className="toolbar-title">Brush Color</h3>
+
+        {/* Color palette quick select */}
+        <div className="color-palette">
+          {colorPalette.map(paletteColor => (
+            <button
+              key={paletteColor}
+              className={`color-swatch ${brushColor === paletteColor ? 'active' : ''}`}
+              style={{ backgroundColor: paletteColor }}
+              onClick={() => onBrushColorChange(paletteColor)}
+              title={paletteColor}
+            />
+          ))}
+        </div>
+
+        {/* Custom color picker */}
+        <div className="color-picker-container">
+          <label htmlFor="brush-color-picker">Custom:</label>
+          <input
+            id="brush-color-picker"
+            type="color"
+            value={brushColor}
+            onChange={(e) => onBrushColorChange(e.target.value)}
+            className="color-picker"
+          />
+          <span className="color-value">{brushColor}</span>
         </div>
       </div>
 
-      {/* ===== DRAWING CONTROLS (shown when draw tool is active) ===== */}
-      {currentTool === 'draw' && (
-        <>
-          <div className="toolbar-section">
-            <h3 className="toolbar-title">Brush Color</h3>
+      <div className="toolbar-section">
+        <h3 className="toolbar-title">Brush Size</h3>
+        <div className="slider-container">
+          <input
+            type="range"
+            min="1"
+            max="50"
+            value={brushSize}
+            onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+            className="slider"
+          />
+          <span className="slider-value">{brushSize}px</span>
+        </div>
 
-            {/* Color palette quick select */}
-            <div className="color-palette">
-              {colorPalette.map(paletteColor => (
-                <button
-                  key={paletteColor}
-                  className={`color-swatch ${brushColor === paletteColor ? 'active' : ''}`}
-                  style={{ backgroundColor: paletteColor }}
-                  onClick={() => onBrushColorChange(paletteColor)}
-                  title={paletteColor}
-                />
-              ))}
-            </div>
+        {/* Visual preview of brush size */}
+        <div className="brush-preview">
+          <div
+            className="brush-preview-dot"
+            style={{
+              width: `${brushSize}px`,
+              height: `${brushSize}px`,
+              backgroundColor: brushColor
+            }}
+          />
+        </div>
+      </div>
 
-            {/* Custom color picker */}
-            <div className="color-picker-container">
-              <label htmlFor="brush-color-picker">Custom:</label>
-              <input
-                id="brush-color-picker"
-                type="color"
-                value={brushColor}
-                onChange={(e) => onBrushColorChange(e.target.value)}
-                className="color-picker"
-              />
-              <span className="color-value">{brushColor}</span>
-            </div>
-          </div>
+      {/* ===== TEXT CONTROLS ===== */}
+      <div className="toolbar-section">
+        <h3 className="toolbar-title">Text Color</h3>
 
-          <div className="toolbar-section">
-            <h3 className="toolbar-title">Brush Size</h3>
-            <div className="slider-container">
-              <input
-                type="range"
-                min="1"
-                max="50"
-                value={brushSize}
-                onChange={(e) => onBrushSizeChange(Number(e.target.value))}
-                className="slider"
-              />
-              <span className="slider-value">{brushSize}px</span>
-            </div>
+        {/* Color palette quick select */}
+        <div className="color-palette">
+          {colorPalette.map(paletteColor => (
+            <button
+              key={paletteColor}
+              className={`color-swatch ${textColor === paletteColor ? 'active' : ''}`}
+              style={{ backgroundColor: paletteColor }}
+              onClick={() => onTextColorChange(paletteColor)}
+              title={paletteColor}
+            />
+          ))}
+        </div>
 
-            {/* Visual preview of brush size */}
-            <div className="brush-preview">
-              <div
-                className="brush-preview-dot"
-                style={{
-                  width: `${brushSize}px`,
-                  height: `${brushSize}px`,
-                  backgroundColor: brushColor
-                }}
-              />
-            </div>
-          </div>
-        </>
-      )}
+        {/* Custom color picker */}
+        <div className="color-picker-container">
+          <label htmlFor="text-color-picker">Custom:</label>
+          <input
+            id="text-color-picker"
+            type="color"
+            value={textColor}
+            onChange={(e) => onTextColorChange(e.target.value)}
+            className="color-picker"
+          />
+          <span className="color-value">{textColor}</span>
+        </div>
+      </div>
 
-      {/* ===== TEXT CONTROLS (shown when text tool is active) ===== */}
-      {currentTool === 'text' && (
-        <>
-          <div className="toolbar-section">
-            <h3 className="toolbar-title">Text Color</h3>
+      <div className="toolbar-section">
+        <h3 className="toolbar-title">Font Size</h3>
+        <div className="slider-container">
+          <input
+            type="range"
+            min="8"
+            max="72"
+            value={fontSize}
+            onChange={(e) => onFontSizeChange(Number(e.target.value))}
+            className="slider"
+          />
+          <span className="slider-value">{fontSize}px</span>
+        </div>
 
-            {/* Color palette quick select */}
-            <div className="color-palette">
-              {colorPalette.map(paletteColor => (
-                <button
-                  key={paletteColor}
-                  className={`color-swatch ${textColor === paletteColor ? 'active' : ''}`}
-                  style={{ backgroundColor: paletteColor }}
-                  onClick={() => onTextColorChange(paletteColor)}
-                  title={paletteColor}
-                />
-              ))}
-            </div>
-
-            {/* Custom color picker */}
-            <div className="color-picker-container">
-              <label htmlFor="text-color-picker">Custom:</label>
-              <input
-                id="text-color-picker"
-                type="color"
-                value={textColor}
-                onChange={(e) => onTextColorChange(e.target.value)}
-                className="color-picker"
-              />
-              <span className="color-value">{textColor}</span>
-            </div>
-          </div>
-
-          <div className="toolbar-section">
-            <h3 className="toolbar-title">Font Size</h3>
-            <div className="slider-container">
-              <input
-                type="range"
-                min="8"
-                max="72"
-                value={fontSize}
-                onChange={(e) => onFontSizeChange(Number(e.target.value))}
-                className="slider"
-              />
-              <span className="slider-value">{fontSize}px</span>
-            </div>
-
-            {/* Visual preview of text */}
-            <div className="text-preview">
-              <span
-                style={{
-                  fontSize: `${fontSize}px`,
-                  color: textColor
-                }}
-              >
-                Sample Text
-              </span>
-            </div>
-          </div>
-        </>
-      )}
+        {/* Visual preview of text */}
+        <div className="text-preview">
+          <span
+            style={{
+              fontSize: `${fontSize}px`,
+              color: textColor
+            }}
+          >
+            Sample Text
+          </span>
+        </div>
+      </div>
 
       {/* ===== ACTIONS ===== */}
       <div className="toolbar-section">
+        <button
+          className="add-textbox-button"
+          onClick={onAddTextBox}
+          title="Add a new text box"
+        >
+          ➕ Add Text Box
+        </button>
+
         <button
           className="clear-button"
           onClick={onClear}

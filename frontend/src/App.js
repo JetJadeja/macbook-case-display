@@ -24,9 +24,6 @@ function App() {
   const [name, setName] = useState('');
   const [showCanvas, setShowCanvas] = useState(false);
 
-  // ===== TOOL STATE =====
-  const [currentTool, setCurrentTool] = useState('draw');
-
   // ===== DRAWING STATE =====
   const [brushColor, setBrushColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(3);
@@ -42,7 +39,7 @@ function App() {
   const [submitted, setSubmitted] = useState(false);
 
   // ===== REFS =====
-  const canvasContainerRef = useRef(null);
+  const canvasRef = useRef(null);
 
   /**
    * Handle name form submission
@@ -68,8 +65,18 @@ function App() {
    * Triggers clear method in Canvas component
    */
   const handleClearCanvas = () => {
-    if (canvasContainerRef.current && canvasContainerRef.current.clearCanvas) {
-      canvasContainerRef.current.clearCanvas();
+    if (canvasRef.current) {
+      canvasRef.current.clearCanvas();
+    }
+  };
+
+  /**
+   * Handle add text box
+   * Triggers createTextBox method in Canvas component
+   */
+  const handleAddTextBox = () => {
+    if (canvasRef.current) {
+      canvasRef.current.createTextBox();
     }
   };
 
@@ -196,8 +203,6 @@ function App() {
         {/* Left sidebar: Toolbar */}
         <aside className="sidebar">
           <Toolbar
-            currentTool={currentTool}
-            onToolChange={setCurrentTool}
             brushColor={brushColor}
             onBrushColorChange={setBrushColor}
             brushSize={brushSize}
@@ -206,22 +211,21 @@ function App() {
             onTextColorChange={setTextColor}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
+            onAddTextBox={handleAddTextBox}
             onClear={handleClearCanvas}
           />
         </aside>
 
         {/* Center: Canvas */}
         <main className="canvas-main">
-          <div ref={canvasContainerRef}>
-            <Canvas
-              currentTool={currentTool}
-              brushColor={brushColor}
-              brushSize={brushSize}
-              textColor={textColor}
-              fontSize={fontSize}
-              onDataChange={handleCanvasDataChange}
-            />
-          </div>
+          <Canvas
+            ref={canvasRef}
+            brushColor={brushColor}
+            brushSize={brushSize}
+            textColor={textColor}
+            fontSize={fontSize}
+            onDataChange={handleCanvasDataChange}
+          />
 
           {/* Submit button */}
           <div className="canvas-footer">
