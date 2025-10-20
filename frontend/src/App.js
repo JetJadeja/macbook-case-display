@@ -24,12 +24,9 @@ function App() {
   const [name, setName] = useState('');
   const [showCanvas, setShowCanvas] = useState(false);
 
-  // ===== DRAWING STATE =====
-  const [brushColor, setBrushColor] = useState('#000000');
+  // ===== DRAWING & TEXT STATE =====
+  const [color, setColor] = useState('#000000'); // Unified color for both brush and text
   const [brushSize, setBrushSize] = useState(3);
-
-  // ===== TEXT STATE =====
-  const [textColor, setTextColor] = useState('#000000');
   const [fontSize, setFontSize] = useState(24);
 
   // ===== CANVAS DATA STATE =====
@@ -203,12 +200,10 @@ function App() {
         {/* Left sidebar: Toolbar */}
         <aside className="sidebar">
           <Toolbar
-            brushColor={brushColor}
-            onBrushColorChange={setBrushColor}
+            color={color}
+            onColorChange={setColor}
             brushSize={brushSize}
             onBrushSizeChange={setBrushSize}
-            textColor={textColor}
-            onTextColorChange={setTextColor}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
             onAddTextBox={handleAddTextBox}
@@ -220,9 +215,8 @@ function App() {
         <main className="canvas-main">
           <Canvas
             ref={canvasRef}
-            brushColor={brushColor}
+            color={color}
             brushSize={brushSize}
-            textColor={textColor}
             fontSize={fontSize}
             onDataChange={handleCanvasDataChange}
           />

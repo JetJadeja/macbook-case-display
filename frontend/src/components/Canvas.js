@@ -12,19 +12,15 @@ import './Canvas.css';
  * - Tool mode coordination (draw vs text)
  *
  * @param {Object} props
- * @param {string} props.currentTool - Active tool mode ('draw' or 'text')
- * @param {string} props.brushColor - Current brush color for drawing
+ * @param {string} props.color - Unified color for both drawing and text
  * @param {number} props.brushSize - Current brush size in pixels
- * @param {string} props.textColor - Current text color for new text boxes
  * @param {number} props.fontSize - Current font size for new text boxes
  * @param {Function} props.onDataChange - Callback when canvas data changes
  * @param {React.Ref} ref - Forwarded ref to expose methods to parent
  */
 const Canvas = forwardRef(({
-  currentTool,
-  brushColor,
+  color,
   brushSize,
-  textColor,
   fontSize,
   onDataChange
 }, ref) => {
@@ -69,10 +65,10 @@ const Canvas = forwardRef(({
    */
   useEffect(() => {
     if (contextRef.current) {
-      contextRef.current.strokeStyle = brushColor;
+      contextRef.current.strokeStyle = color;
       contextRef.current.lineWidth = brushSize;
     }
-  }, [brushColor, brushSize]);
+  }, [color, brushSize]);
 
   /**
    * Notify parent component of data changes
@@ -253,13 +249,13 @@ const Canvas = forwardRef(({
         x: baseX + offset,
         y: baseY + offset
       },
-      color: textColor,
+      color: color,
       fontSize: fontSize
     };
 
     setTextBoxes(prev => [...prev, newTextBox]);
     setNextTextBoxId(prev => prev + 1);
-  }, [textBoxes.length, nextTextBoxId, textColor, fontSize]);
+  }, [textBoxes.length, nextTextBoxId, color, fontSize]);
 
   /**
    * Expose methods to parent component via ref

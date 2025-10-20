@@ -6,30 +6,27 @@ import './Toolbar.css';
  *
  * Control panel for all drawing and text tools
  * Features:
- * - Brush color and size controls
+ * - Unified color picker for both brush and text
+ * - Brush size control
+ * - Font size control
  * - Add text box button
- * - Text color and font size controls
  * - Clear canvas button
  *
  * @param {Object} props
- * @param {string} props.brushColor - Current brush color
- * @param {Function} props.onBrushColorChange - Callback when brush color changes
+ * @param {string} props.color - Unified color for both brush and text
+ * @param {Function} props.onColorChange - Callback when color changes
  * @param {number} props.brushSize - Current brush size (1-50)
  * @param {Function} props.onBrushSizeChange - Callback when brush size changes
- * @param {string} props.textColor - Current text color
- * @param {Function} props.onTextColorChange - Callback when text color changes
  * @param {number} props.fontSize - Current font size (8-72)
  * @param {Function} props.onFontSizeChange - Callback when font size changes
  * @param {Function} props.onAddTextBox - Callback to add a new text box
  * @param {Function} props.onClear - Callback to clear canvas
  */
 const Toolbar = ({
-  brushColor,
-  onBrushColorChange,
+  color,
+  onColorChange,
   brushSize,
   onBrushSizeChange,
-  textColor,
-  onTextColorChange,
   fontSize,
   onFontSizeChange,
   onAddTextBox,
@@ -55,18 +52,18 @@ const Toolbar = ({
 
   return (
     <div className="toolbar">
-      {/* ===== DRAWING CONTROLS ===== */}
+      {/* ===== UNIFIED COLOR CONTROL ===== */}
       <div className="toolbar-section">
-        <h3 className="toolbar-title">Brush Color</h3>
+        <h3 className="toolbar-title">Color</h3>
 
         {/* Color palette quick select */}
         <div className="color-palette">
           {colorPalette.map(paletteColor => (
             <button
               key={paletteColor}
-              className={`color-swatch ${brushColor === paletteColor ? 'active' : ''}`}
+              className={`color-swatch ${color === paletteColor ? 'active' : ''}`}
               style={{ backgroundColor: paletteColor }}
-              onClick={() => onBrushColorChange(paletteColor)}
+              onClick={() => onColorChange(paletteColor)}
               title={paletteColor}
             />
           ))}
@@ -74,15 +71,15 @@ const Toolbar = ({
 
         {/* Custom color picker */}
         <div className="color-picker-container">
-          <label htmlFor="brush-color-picker">Custom:</label>
+          <label htmlFor="color-picker">Custom:</label>
           <input
-            id="brush-color-picker"
+            id="color-picker"
             type="color"
-            value={brushColor}
-            onChange={(e) => onBrushColorChange(e.target.value)}
+            value={color}
+            onChange={(e) => onColorChange(e.target.value)}
             className="color-picker"
           />
-          <span className="color-value">{brushColor}</span>
+          <span className="color-value">{color}</span>
         </div>
       </div>
 
@@ -107,42 +104,13 @@ const Toolbar = ({
             style={{
               width: `${brushSize}px`,
               height: `${brushSize}px`,
-              backgroundColor: brushColor
+              backgroundColor: color
             }}
           />
         </div>
       </div>
 
-      {/* ===== TEXT CONTROLS ===== */}
-      <div className="toolbar-section">
-        <h3 className="toolbar-title">Text Color</h3>
-
-        {/* Color palette quick select */}
-        <div className="color-palette">
-          {colorPalette.map(paletteColor => (
-            <button
-              key={paletteColor}
-              className={`color-swatch ${textColor === paletteColor ? 'active' : ''}`}
-              style={{ backgroundColor: paletteColor }}
-              onClick={() => onTextColorChange(paletteColor)}
-              title={paletteColor}
-            />
-          ))}
-        </div>
-
-        {/* Custom color picker */}
-        <div className="color-picker-container">
-          <label htmlFor="text-color-picker">Custom:</label>
-          <input
-            id="text-color-picker"
-            type="color"
-            value={textColor}
-            onChange={(e) => onTextColorChange(e.target.value)}
-            className="color-picker"
-          />
-          <span className="color-value">{textColor}</span>
-        </div>
-      </div>
+      {/* ===== TEXT SIZE CONTROL ===== */}
 
       <div className="toolbar-section">
         <h3 className="toolbar-title">Font Size</h3>
@@ -163,7 +131,7 @@ const Toolbar = ({
           <span
             style={{
               fontSize: `${fontSize}px`,
-              color: textColor
+              color: color
             }}
           >
             Sample Text
