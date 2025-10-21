@@ -29,7 +29,7 @@ export function StatusPanel({
           SYSTEM STATUS
         </div>
 
-        {status === "ending" && resetCountdown ? (
+        {resetCountdown !== undefined && resetCountdown > 0 ? (
           <div className="text-center">
             <div className="text-xl text-red-400 mb-4 animate-pulse">
               !!! RESET !!!

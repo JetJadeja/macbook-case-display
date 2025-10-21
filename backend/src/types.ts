@@ -1,5 +1,7 @@
 export type Team = 'iovine' | 'young';
 
+export type GamePhase = 'waiting' | 'warmup' | 'active' | 'ended';
+
 export type EffectType = 'ban-shield' | 'pause-shield' | 'full-shield' | 'click-multiplier' | 'coin-multiplier' | 'paused' | 'banned';
 
 export interface ActiveEffect {
@@ -24,8 +26,11 @@ export interface GameState {
     iovine: number;
     young: number;
   };
-  status: 'waiting' | 'active' | 'ended';
+  phase: GamePhase;
   winner: Team | null;
+  warmupStartTime: number | null;
+  warmupDuration: number; // milliseconds (30000 = 30 seconds)
+  winThreshold: number | null;
 }
 
 export interface GameStateResponse {
@@ -37,7 +42,9 @@ export interface GameStateResponse {
     iovine: number;
     young: number;
   };
-  status: 'waiting' | 'active' | 'ended' | 'ending';
+  phase: GamePhase;
   winner: Team | null;
+  warmupTimeRemaining?: number; // seconds remaining in warmup phase
+  winThreshold?: number; // points needed to win (set after warmup)
   resetCountdown?: number; // seconds remaining before reset
 }

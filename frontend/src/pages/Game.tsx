@@ -9,6 +9,8 @@ import { GameControls } from "../components/GameControls";
 import { ArcadeFooter } from "../components/ArcadeFooter";
 import { ShopModal } from "../components/ShopModal";
 import { ActiveEffectsBar, ActiveEffect } from "../components/ActiveEffectsBar";
+import { WarmupBanner } from "../components/WarmupBanner";
+import { LeaveGameModal } from "../components/LeaveGameModal";
 
 interface GameState {
   players: {
@@ -19,8 +21,10 @@ interface GameState {
     iovine: number;
     young: number;
   };
-  status: string;
+  phase: "waiting" | "warmup" | "active" | "ended";
   winner: string | null;
+  warmupTimeRemaining?: number;
+  winThreshold?: number;
 }
 
 function Game() {
@@ -31,6 +35,7 @@ function Game() {
   const [coins, setCoins] = useState(0);
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [playerTeam, setPlayerTeam] = useState<"iovine" | "young" | null>(null);
@@ -146,6 +151,18 @@ function Game() {
   };
 
   const handleLeaveGame = () => {
+    // If waiting or ended phase, leave immediately
+    if (!gameState || gameState.phase === "waiting" || gameState.phase === "ended") {
+      navigate("/");
+      return;
+    }
+
+    // If warmup or active, show confirmation modal
+    setIsLeaveModalOpen(true);
+  };
+
+  const confirmLeaveGame = () => {
+    setIsLeaveModalOpen(false);
     navigate("/");
   };
 
@@ -184,8 +201,18 @@ function Game() {
     <div className="h-screen bg-black relative overflow-hidden pixel-font">
       <ArcadeBackground />
 
+      {/* Warmup Banner - Fixed at top */}
+      {gameState?.phase === "warmup" &&
+        gameState.warmupTimeRemaining !== undefined && (
+          <WarmupBanner timeRemaining={gameState.warmupTimeRemaining} />
+        )}
+
       <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-7xl space-y-6 py-4">
+        <div
+          className={`w-full max-w-7xl space-y-6 py-4 ${
+            gameState?.phase === "warmup" ? "pt-32" : ""
+          }`}
+        >
           {/* Player Banner */}
           <PlayerBanner playerName={playerName} team={playerTeam} coins={coins} />
 
@@ -230,6 +257,7 @@ function Game() {
           <TugOfWarBar
             iovineScore={gameState.scores.iovine}
             youngScore={gameState.scores.young}
+            winThreshold={gameState.winThreshold}
           />
 
           {/* Game Controls */}
@@ -246,6 +274,16 @@ function Game() {
         onClose={handleCloseShop}
         coins={coins}
         onPurchase={handlePurchase}
+        phase={gameState?.phase}
+        warmupTimeRemaining={gameState?.warmupTimeRemaining}
+      />
+
+      {/* Leave Confirmation Modal */}
+      <LeaveGameModal
+        isOpen={isLeaveModalOpen}
+        phase={gameState?.phase || "waiting"}
+        onCancel={() => setIsLeaveModalOpen(false)}
+        onConfirm={confirmLeaveGame}
       />
     </div>
   );

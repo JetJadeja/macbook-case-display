@@ -16,8 +16,10 @@ interface GameState {
     iovine: number;
     young: number;
   };
-  status: string;
+  phase: "waiting" | "warmup" | "active" | "ended";
   winner: string | null;
+  warmupTimeRemaining?: number;
+  winThreshold?: number;
   resetCountdown?: number;
 }
 
@@ -66,6 +68,12 @@ function Home() {
         body: JSON.stringify({ name: name.trim(), team: selectedTeam }),
       });
 
+      if (response.status === 403) {
+        // Join blocked - game in progress
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       // Navigate to game page with player info in state
@@ -81,6 +89,24 @@ function Home() {
       setLoading(false);
     }
   };
+
+  // Get join status message based on phase
+  const getJoinMessage = () => {
+    if (!gameState) return "";
+
+    switch (gameState.phase) {
+      case "warmup":
+        return "WARMUP IN PROGRESS - Joining disabled";
+      case "active":
+        return "GAME IN PROGRESS - Joining locked";
+      case "ended":
+        return "Game ended - Resetting soon...";
+      default:
+        return "";
+    }
+  };
+
+  const isJoinDisabled = gameState?.phase !== "waiting";
 
   return (
     <div className="h-screen bg-black relative overflow-hidden pixel-font">
@@ -101,7 +127,7 @@ function Home() {
               />
 
               <StatusPanel
-                status={gameState.status}
+                status={gameState.phase}
                 resetCountdown={gameState.resetCountdown}
                 iovineScore={gameState.scores.iovine}
                 youngScore={gameState.scores.young}
@@ -120,6 +146,8 @@ function Home() {
             name={name}
             selectedTeam={selectedTeam}
             loading={loading}
+            disabled={isJoinDisabled}
+            message={getJoinMessage()}
             onNameChange={setName}
             onTeamSelect={setSelectedTeam}
             onSubmit={handleJoinGame}

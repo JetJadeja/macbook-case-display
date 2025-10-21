@@ -16,8 +16,11 @@ class GameManager {
     this.state = {
       players: new Map(),
       scores: { iovine: 0, young: 0 },
-      status: 'waiting',
-      winner: null
+      phase: 'waiting',
+      winner: null,
+      warmupStartTime: null,
+      warmupDuration: 30000, // 30 seconds
+      winThreshold: null
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -31,8 +34,15 @@ class GameManager {
 
   /**
    * Add a player to a team
+   * Returns null if joining is blocked (warmup/active/ended phase)
    */
-  joinGame(name: string, team: Team): Player {
+  joinGame(name: string, team: Team): Player | null {
+    // Block joins during warmup, active, or ended phases
+    if (this.state.phase !== 'waiting') {
+      console.log(`Join blocked: game in ${this.state.phase} phase`);
+      return null;
+    }
+
     const player: Player = {
       id: randomUUID(),
       name,
@@ -48,12 +58,81 @@ class GameManager {
     // Mark that this team has had players
     this.hasHadPlayers[team] = true;
 
-    // Start game if not already active
-    if (this.state.status === 'waiting') {
-      this.state.status = 'active';
-    }
+    // Check if we should start warmup phase (both teams have players)
+    this.checkAndStartWarmup();
 
     return player;
+  }
+
+  /**
+   * Check if warmup should start (both teams have at least one player)
+   */
+  private checkAndStartWarmup(): void {
+    if (this.state.phase !== 'waiting') return;
+
+    const hasIovine = Array.from(this.state.players.values())
+      .some(p => p.team === 'iovine');
+    const hasYoung = Array.from(this.state.players.values())
+      .some(p => p.team === 'young');
+
+    if (hasIovine && hasYoung) {
+      this.state.phase = 'warmup';
+      this.state.warmupStartTime = Date.now();
+      console.log('🏁 Warmup phase started! Duration: 30 seconds');
+    }
+  }
+
+  /**
+   * Calculate win threshold based on team sizes
+   * Placeholder formula - can be adjusted later
+   */
+  private calculateWinThreshold(): number {
+    const iovineCount = Array.from(this.state.players.values())
+      .filter(p => p.team === 'iovine').length;
+    const youngCount = Array.from(this.state.players.values())
+      .filter(p => p.team === 'young').length;
+    const totalPlayers = iovineCount + youngCount;
+
+    // Placeholder formula: 50 points per player
+    // Can be adjusted based on testing
+    const threshold = Math.max(300, totalPlayers * 50);
+
+    console.log(`Win threshold calculated: ${threshold} (${totalPlayers} players)`);
+    return threshold;
+  }
+
+  /**
+   * Check if warmup phase has expired and transition to active
+   */
+  private checkWarmupExpiration(): void {
+    if (this.state.phase !== 'warmup' || !this.state.warmupStartTime) return;
+
+    const elapsed = Date.now() - this.state.warmupStartTime;
+
+    if (elapsed >= this.state.warmupDuration) {
+      // Warmup ended - transition to active phase
+      this.state.phase = 'active';
+      this.state.winThreshold = this.calculateWinThreshold();
+
+      console.log(`🎮 Game active! Win threshold: ${this.state.winThreshold}`);
+    }
+  }
+
+  /**
+   * Check if a team has reached the win threshold
+   */
+  private checkWinCondition(): void {
+    if (this.state.phase !== 'active' || !this.state.winThreshold) return;
+
+    if (this.state.scores.iovine >= this.state.winThreshold) {
+      this.state.phase = 'ended';
+      this.state.winner = 'iovine';
+      console.log('🏆 Team Iovine wins!');
+    } else if (this.state.scores.young >= this.state.winThreshold) {
+      this.state.phase = 'ended';
+      this.state.winner = 'young';
+      console.log('🏆 Team Young wins!');
+    }
   }
 
   /**
@@ -106,6 +185,10 @@ class GameManager {
     const INACTIVE_THRESHOLD = 5000; // 5 seconds
     const EMPTY_TEAM_RESET_THRESHOLD = 15000; // 15 seconds
 
+    // Check for phase transitions
+    this.checkWarmupExpiration();
+    this.checkWinCondition();
+
     // Filter only active players (seen in last 5 seconds)
     const iovinePlayers = Array.from(this.state.players.values())
       .filter(p => p.team === 'iovine' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
@@ -157,34 +240,29 @@ class GameManager {
       this.emptyTeamTimers.young = null;
     }
 
-    // Determine game status based on player activity
-    let status: 'waiting' | 'active' | 'ended' | 'ending';
-
-    const hasAnyCurrentPlayers = iovinePlayers.length > 0 || youngPlayers.length > 0;
-    const hasEverHadPlayers = this.hasHadPlayers.iovine || this.hasHadPlayers.young;
-    const inCountdown = resetCountdown !== undefined;
-
-    if (!hasEverHadPlayers && !hasAnyCurrentPlayers) {
-      // Game hasn't started yet - no players have ever joined
-      status = 'waiting';
-    } else if (inCountdown) {
-      // Countdown active - team(s) abandoned
-      status = 'ending';
-    } else {
-      // Normal gameplay
-      status = 'active';
-    }
-
     const response: GameStateResponse = {
       players: {
         iovine: iovinePlayers,
         young: youngPlayers
       },
       scores: this.state.scores,
-      status,
+      phase: this.state.phase,
       winner: this.state.winner
     };
 
+    // Add warmup countdown if in warmup phase
+    if (this.state.phase === 'warmup' && this.state.warmupStartTime) {
+      const elapsed = now - this.state.warmupStartTime;
+      const remaining = this.state.warmupDuration - elapsed;
+      response.warmupTimeRemaining = Math.max(0, Math.ceil(remaining / 1000));
+    }
+
+    // Add win threshold if it's been calculated (active or ended phase)
+    if (this.state.winThreshold !== null) {
+      response.winThreshold = this.state.winThreshold;
+    }
+
+    // Add reset countdown if team abandoned
     if (resetCountdown !== undefined) {
       response.resetCountdown = resetCountdown;
     }
@@ -199,8 +277,11 @@ class GameManager {
     this.state = {
       players: new Map(),
       scores: { iovine: 0, young: 0 },
-      status: 'waiting',
-      winner: null
+      phase: 'waiting',
+      winner: null,
+      warmupStartTime: null,
+      warmupDuration: 30000,
+      winThreshold: null
     };
     this.emptyTeamTimers = {
       iovine: null,

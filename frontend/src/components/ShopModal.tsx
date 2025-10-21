@@ -12,6 +12,8 @@ interface ShopModalProps {
   onClose: () => void;
   coins: number;
   onPurchase: (itemId: string, cost: number) => void;
+  phase?: "waiting" | "warmup" | "active" | "ended";
+  warmupTimeRemaining?: number | null;
 }
 
 // Shop items configuration (placeholder for now)
@@ -65,6 +67,8 @@ export function ShopModal({
   onClose,
   coins,
   onPurchase,
+  phase = "active",
+  warmupTimeRemaining = null,
 }: ShopModalProps) {
   // Close modal on ESC key
   useEffect(() => {
@@ -79,6 +83,8 @@ export function ShopModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const isLocked = phase === "warmup" || phase === "waiting";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -116,7 +122,7 @@ export function ShopModal({
           </div>
 
           {/* Shop Grid */}
-          <div className="p-8">
+          <div className="p-8 relative">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               {SHOP_ITEMS.map((item) => (
                 <ShopItem
@@ -125,11 +131,31 @@ export function ShopModal({
                   name={item.name}
                   description={item.description}
                   cost={item.cost}
-                  canAfford={coins >= item.cost}
+                  canAfford={!isLocked && coins >= item.cost}
                   onPurchase={() => onPurchase(item.id, item.cost)}
                 />
               ))}
             </div>
+
+            {/* Lock Overlay during warmup */}
+            {isLocked && (
+              <div className="absolute inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center rounded-lg">
+                <div className="text-8xl mb-4">🔒</div>
+                <div className="text-3xl font-bold text-yellow-400 mb-2">
+                  SHOP LOCKED
+                </div>
+                <div className="text-lg text-yellow-200 mb-4">
+                  {phase === "warmup"
+                    ? "Available after warmup phase"
+                    : "Waiting for game to start"}
+                </div>
+                {warmupTimeRemaining !== null && warmupTimeRemaining > 0 && (
+                  <div className="text-2xl text-white tabular-nums">
+                    Available in: 0:{warmupTimeRemaining.toString().padStart(2, "0")}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer */}

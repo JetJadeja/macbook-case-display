@@ -15,6 +15,8 @@ interface JoinFormProps {
   name: string;
   selectedTeam: "iovine" | "young" | null;
   loading: boolean;
+  disabled?: boolean;
+  message?: string;
   onNameChange: (name: string) => void;
   onTeamSelect: (team: "iovine" | "young") => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -24,6 +26,8 @@ export function JoinForm({
   name,
   selectedTeam,
   loading,
+  disabled = false,
+  message = "",
   onNameChange,
   onTeamSelect,
   onSubmit,
@@ -75,10 +79,17 @@ export function JoinForm({
             </div>
           </div>
 
+          {/* Message (error/warning) */}
+          {message && (
+            <div className="bg-yellow-900/50 border-2 border-yellow-600 rounded px-4 py-3 text-center">
+              <div className="text-sm text-yellow-400 font-bold">⚠️ {message}</div>
+            </div>
+          )}
+
           {/* Start Button */}
           <ArcadeButton
             type="submit"
-            disabled={!name.trim() || !selectedTeam}
+            disabled={disabled || !name.trim() || !selectedTeam}
             loading={loading}
             colorScheme="green"
           >

@@ -22566,8 +22566,11 @@ class GameManager {
     this.state = {
       players: new Map,
       scores: { iovine: 0, young: 0 },
-      status: "waiting",
-      winner: null
+      phase: "waiting",
+      winner: null,
+      warmupStartTime: null,
+      warmupDuration: 30000,
+      winThreshold: null
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -22579,6 +22582,10 @@ class GameManager {
     };
   }
   joinGame(name, team) {
+    if (this.state.phase !== "waiting") {
+      console.log(`Join blocked: game in ${this.state.phase} phase`);
+      return null;
+    }
     const player = {
       id: randomUUID(),
       name,
@@ -22590,10 +22597,50 @@ class GameManager {
     };
     this.state.players.set(player.id, player);
     this.hasHadPlayers[team] = true;
-    if (this.state.status === "waiting") {
-      this.state.status = "active";
-    }
+    this.checkAndStartWarmup();
     return player;
+  }
+  checkAndStartWarmup() {
+    if (this.state.phase !== "waiting")
+      return;
+    const hasIovine = Array.from(this.state.players.values()).some((p) => p.team === "iovine");
+    const hasYoung = Array.from(this.state.players.values()).some((p) => p.team === "young");
+    if (hasIovine && hasYoung) {
+      this.state.phase = "warmup";
+      this.state.warmupStartTime = Date.now();
+      console.log("\uD83C\uDFC1 Warmup phase started! Duration: 30 seconds");
+    }
+  }
+  calculateWinThreshold() {
+    const iovineCount = Array.from(this.state.players.values()).filter((p) => p.team === "iovine").length;
+    const youngCount = Array.from(this.state.players.values()).filter((p) => p.team === "young").length;
+    const totalPlayers = iovineCount + youngCount;
+    const threshold = Math.max(300, totalPlayers * 50);
+    console.log(`Win threshold calculated: ${threshold} (${totalPlayers} players)`);
+    return threshold;
+  }
+  checkWarmupExpiration() {
+    if (this.state.phase !== "warmup" || !this.state.warmupStartTime)
+      return;
+    const elapsed = Date.now() - this.state.warmupStartTime;
+    if (elapsed >= this.state.warmupDuration) {
+      this.state.phase = "active";
+      this.state.winThreshold = this.calculateWinThreshold();
+      console.log(`\uD83C\uDFAE Game active! Win threshold: ${this.state.winThreshold}`);
+    }
+  }
+  checkWinCondition() {
+    if (this.state.phase !== "active" || !this.state.winThreshold)
+      return;
+    if (this.state.scores.iovine >= this.state.winThreshold) {
+      this.state.phase = "ended";
+      this.state.winner = "iovine";
+      console.log("\uD83C\uDFC6 Team Iovine wins!");
+    } else if (this.state.scores.young >= this.state.winThreshold) {
+      this.state.phase = "ended";
+      this.state.winner = "young";
+      console.log("\uD83C\uDFC6 Team Young wins!");
+    }
   }
   registerClick(playerId) {
     const player = this.state.players.get(playerId);
@@ -22622,6 +22669,8 @@ class GameManager {
     const now = Date.now();
     const INACTIVE_THRESHOLD = 5000;
     const EMPTY_TEAM_RESET_THRESHOLD = 15000;
+    this.checkWarmupExpiration();
+    this.checkWinCondition();
     const iovinePlayers = Array.from(this.state.players.values()).filter((p) => p.team === "iovine" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
     const youngPlayers = Array.from(this.state.players.values()).filter((p) => p.team === "young" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
     let resetCountdown = undefined;
@@ -22658,26 +22707,23 @@ class GameManager {
     } else {
       this.emptyTeamTimers.young = null;
     }
-    let status;
-    const hasAnyCurrentPlayers = iovinePlayers.length > 0 || youngPlayers.length > 0;
-    const hasEverHadPlayers = this.hasHadPlayers.iovine || this.hasHadPlayers.young;
-    const inCountdown = resetCountdown !== undefined;
-    if (!hasEverHadPlayers && !hasAnyCurrentPlayers) {
-      status = "waiting";
-    } else if (inCountdown) {
-      status = "ending";
-    } else {
-      status = "active";
-    }
     const response = {
       players: {
         iovine: iovinePlayers,
         young: youngPlayers
       },
       scores: this.state.scores,
-      status,
+      phase: this.state.phase,
       winner: this.state.winner
     };
+    if (this.state.phase === "warmup" && this.state.warmupStartTime) {
+      const elapsed = now - this.state.warmupStartTime;
+      const remaining = this.state.warmupDuration - elapsed;
+      response.warmupTimeRemaining = Math.max(0, Math.ceil(remaining / 1000));
+    }
+    if (this.state.winThreshold !== null) {
+      response.winThreshold = this.state.winThreshold;
+    }
     if (resetCountdown !== undefined) {
       response.resetCountdown = resetCountdown;
     }
@@ -22687,8 +22733,11 @@ class GameManager {
     this.state = {
       players: new Map,
       scores: { iovine: 0, young: 0 },
-      status: "waiting",
-      winner: null
+      phase: "waiting",
+      winner: null,
+      warmupStartTime: null,
+      warmupDuration: 30000,
+      winThreshold: null
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -22720,6 +22769,13 @@ app.post("/api/join", (req, res) => {
     return res.status(400).json({ error: 'Team must be "iovine" or "young"' });
   }
   const player = gameManager.joinGame(name.trim(), team);
+  if (!player) {
+    const gameState2 = gameManager.getGameState();
+    return res.status(403).json({
+      error: "Game in progress - joining disabled",
+      phase: gameState2.phase
+    });
+  }
   const gameState = gameManager.getGameState();
   res.json({
     playerId: player.id,

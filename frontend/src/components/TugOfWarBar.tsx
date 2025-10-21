@@ -11,9 +11,14 @@
 interface TugOfWarBarProps {
   iovineScore: number;
   youngScore: number;
+  winThreshold?: number | null;
 }
 
-export function TugOfWarBar({ iovineScore, youngScore }: TugOfWarBarProps) {
+export function TugOfWarBar({
+  iovineScore,
+  youngScore,
+  winThreshold = null,
+}: TugOfWarBarProps) {
   const total = iovineScore + youngScore + 1; // +1 to avoid division by zero
   const iovinePercentage = (iovineScore / total) * 100;
   const youngPercentage = (youngScore / total) * 100;
@@ -77,15 +82,25 @@ export function TugOfWarBar({ iovineScore, youngScore }: TugOfWarBarProps) {
         </div>
 
         {/* Status text */}
-        <div className="text-center mt-3">
+        <div className="text-center mt-3 space-y-1">
           {tied ? (
             <div className="text-sm text-purple-300 animate-pulse">
               ⚡ PERFECTLY TIED ⚡
             </div>
           ) : (
-            <div className={`text-sm ${iovineWinning ? "text-cyan-300" : "text-red-300"}`}>
+            <div
+              className={`text-sm ${iovineWinning ? "text-cyan-300" : "text-red-300"}`}
+            >
               {iovineWinning ? "IOVINE" : "YOUNG"} LEADS BY{" "}
               <span className="font-bold text-lg tabular-nums">{lead}</span>
+            </div>
+          )}
+
+          {/* Win threshold (shown during active phase) */}
+          {winThreshold !== null && winThreshold !== undefined && (
+            <div className="text-xs text-purple-400">
+              First to{" "}
+              <span className="font-bold text-white">{winThreshold}</span> wins
             </div>
           )}
         </div>

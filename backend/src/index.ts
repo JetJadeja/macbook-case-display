@@ -36,6 +36,16 @@ app.post('/api/join', (req: Request, res: Response) => {
   }
 
   const player = gameManager.joinGame(name.trim(), team as Team);
+
+  // If player is null, joining is blocked (warmup/active/ended phase)
+  if (!player) {
+    const gameState = gameManager.getGameState();
+    return res.status(403).json({
+      error: 'Game in progress - joining disabled',
+      phase: gameState.phase
+    });
+  }
+
   const gameState = gameManager.getGameState();
 
   res.json({
