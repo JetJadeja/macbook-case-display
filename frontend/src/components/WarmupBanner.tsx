@@ -51,7 +51,7 @@ export function WarmupBanner({ timeRemaining }: WarmupBannerProps) {
                 Win requirements calculating...
               </div>
               <div className="text-xs text-yellow-200">
-                Shop locked • Joining disabled
+                Shop locked • Last chance to join!
               </div>
             </div>
 

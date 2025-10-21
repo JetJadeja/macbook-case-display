@@ -202,10 +202,11 @@ function Game() {
       <ArcadeBackground />
 
       {/* Warmup Banner - Fixed at top */}
-      {gameState?.phase === "warmup" &&
-        gameState.warmupTimeRemaining !== undefined && (
-          <WarmupBanner timeRemaining={gameState.warmupTimeRemaining} />
-        )}
+      {gameState?.phase === "warmup" && (
+        <WarmupBanner
+          timeRemaining={gameState.warmupTimeRemaining ?? 30}
+        />
+      )}
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div

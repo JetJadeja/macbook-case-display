@@ -34,11 +34,12 @@ class GameManager {
 
   /**
    * Add a player to a team
-   * Returns null if joining is blocked (warmup/active/ended phase)
+   * Returns null if joining is blocked (active/ended phase)
    */
   joinGame(name: string, team: Team): Player | null {
-    // Block joins during warmup, active, or ended phases
-    if (this.state.phase !== 'waiting') {
+    // Block joins during active or ended phases only
+    // Allow joins during waiting and warmup
+    if (this.state.phase === 'active' || this.state.phase === 'ended') {
       console.log(`Join blocked: game in ${this.state.phase} phase`);
       return null;
     }

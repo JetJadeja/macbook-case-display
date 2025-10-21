@@ -96,7 +96,8 @@ function Home() {
 
     switch (gameState.phase) {
       case "warmup":
-        return "WARMUP IN PROGRESS - Joining disabled";
+        const timeRemaining = gameState.warmupTimeRemaining ?? 30;
+        return `WARMUP PERIOD - Joining locks in ${timeRemaining} seconds`;
       case "active":
         return "GAME IN PROGRESS - Joining locked";
       case "ended":
@@ -106,7 +107,7 @@ function Home() {
     }
   };
 
-  const isJoinDisabled = gameState?.phase !== "waiting";
+  const isJoinDisabled = gameState?.phase === "active" || gameState?.phase === "ended";
 
   return (
     <div className="h-screen bg-black relative overflow-hidden pixel-font">
