@@ -38,7 +38,9 @@ class GameManager {
       name,
       team,
       clicks: 0,
-      lastSeen: Date.now()
+      coins: 0,
+      lastSeen: Date.now(),
+      activeEffects: []
     };
 
     this.state.players.set(player.id, player);
@@ -57,23 +59,29 @@ class GameManager {
   /**
    * Register a click for a player
    */
-  registerClick(playerId: string): { success: boolean; scores: { iovine: number; young: number } } {
+  registerClick(playerId: string): { success: boolean; scores: { iovine: number; young: number }; coins: number } {
     const player = this.state.players.get(playerId);
 
     if (!player) {
-      return { success: false, scores: this.state.scores };
+      return { success: false, scores: this.state.scores, coins: 0 };
     }
 
+    // Increment personal click counter
     player.clicks += 1;
+
+    // Increment coins (1:1 ratio for now, can be modified with multipliers later)
+    player.coins += 1;
+
     player.lastSeen = Date.now();
 
+    // Increment team score (1:1 for now, can be modified with multipliers later)
     if (player.team === 'iovine') {
       this.state.scores.iovine += 1;
     } else {
       this.state.scores.young += 1;
     }
 
-    return { success: true, scores: this.state.scores };
+    return { success: true, scores: this.state.scores, coins: player.coins };
   }
 
   /**
@@ -101,11 +109,11 @@ class GameManager {
     // Filter only active players (seen in last 5 seconds)
     const iovinePlayers = Array.from(this.state.players.values())
       .filter(p => p.team === 'iovine' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
-      .map(p => ({ name: p.name, clicks: p.clicks }));
+      .map(p => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
 
     const youngPlayers = Array.from(this.state.players.values())
       .filter(p => p.team === 'young' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
-      .map(p => ({ name: p.name, clicks: p.clicks }));
+      .map(p => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
 
     let resetCountdown: number | undefined = undefined;
 

@@ -62,7 +62,7 @@ app.post('/api/click', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Player not found' });
   }
 
-  res.json({ scores: result.scores });
+  res.json({ scores: result.scores, coins: result.coins });
 });
 
 /**
