@@ -7,11 +7,13 @@ import { ClickButton } from "../components/ClickButton";
 import { TugOfWarBar } from "../components/TugOfWarBar";
 import { GameControls } from "../components/GameControls";
 import { ArcadeFooter } from "../components/ArcadeFooter";
+import { ShopModal } from "../components/ShopModal";
+import { ActiveEffectsBar, ActiveEffect } from "../components/ActiveEffectsBar";
 
 interface GameState {
   players: {
-    iovine: Array<{ name: string; clicks: number }>;
-    young: Array<{ name: string; clicks: number }>;
+    iovine: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
+    young: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
   };
   scores: {
     iovine: number;
@@ -26,6 +28,9 @@ function Game() {
   const location = useLocation();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [personalClicks, setPersonalClicks] = useState(0);
+  const [coins, setCoins] = useState(0);
+  const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
+  const [isShopOpen, setIsShopOpen] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [playerTeam, setPlayerTeam] = useState<"iovine" | "young" | null>(null);
@@ -74,6 +79,16 @@ function Game() {
       const response = await fetch("http://localhost:3001/api/game");
       const data = await response.json();
       setGameState(data);
+
+      // Update personal data from game state
+      if (playerName && playerTeam) {
+        const myTeamPlayers = data.players[playerTeam];
+        const myPlayer = myTeamPlayers.find((p: any) => p.name === playerName);
+        if (myPlayer) {
+          setCoins(myPlayer.coins);
+          setActiveEffects(myPlayer.activeEffects);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch game state:", error);
     }
@@ -124,6 +139,7 @@ function Game() {
           : null
       );
       setPersonalClicks((prev) => prev + 1);
+      setCoins(data.coins);
     } catch (error) {
       console.error("Failed to register click:", error);
     }
@@ -131,6 +147,27 @@ function Game() {
 
   const handleLeaveGame = () => {
     navigate("/");
+  };
+
+  const handleOpenShop = () => {
+    setIsShopOpen(true);
+  };
+
+  const handleCloseShop = () => {
+    setIsShopOpen(false);
+  };
+
+  const handlePurchase = async (itemId: string, cost: number) => {
+    // Placeholder for shop purchase logic
+    // TODO: Implement backend endpoint for purchasing items
+    console.log(`Purchasing ${itemId} for ${cost} coins`);
+
+    // For now, just deduct coins locally (will be replaced with API call)
+    if (coins >= cost) {
+      setCoins(coins - cost);
+      setIsShopOpen(false);
+      // TODO: Add item to activeEffects
+    }
   };
 
   if (!playerName || !playerTeam || !gameState) {
@@ -150,7 +187,12 @@ function Game() {
       <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-7xl space-y-6 py-4">
           {/* Player Banner */}
-          <PlayerBanner playerName={playerName} team={playerTeam} />
+          <PlayerBanner playerName={playerName} team={playerTeam} coins={coins} />
+
+          {/* Active Effects Bar */}
+          {activeEffects.length > 0 && (
+            <ActiveEffectsBar effects={activeEffects} />
+          )}
 
           {/* Main Game Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -191,12 +233,20 @@ function Game() {
           />
 
           {/* Game Controls */}
-          <GameControls onLeaveGame={handleLeaveGame} />
+          <GameControls onLeaveGame={handleLeaveGame} onOpenShop={handleOpenShop} />
 
           {/* Footer */}
           <ArcadeFooter />
         </div>
       </div>
+
+      {/* Shop Modal */}
+      <ShopModal
+        isOpen={isShopOpen}
+        onClose={handleCloseShop}
+        coins={coins}
+        onPurchase={handlePurchase}
+      />
     </div>
   );
 }

@@ -1,9 +1,12 @@
+import { CurrencyDisplay } from "./CurrencyDisplay";
+
 /**
  * PlayerBanner Component
  *
  * Displays current player information with arcade styling:
  * - Player name
  * - Team assignment
+ * - Coin balance
  * - Glowing border in team color
  * - Animated status indicator
  */
@@ -11,9 +14,10 @@
 interface PlayerBannerProps {
   playerName: string;
   team: "iovine" | "young";
+  coins: number;
 }
 
-export function PlayerBanner({ playerName, team }: PlayerBannerProps) {
+export function PlayerBanner({ playerName, team, coins }: PlayerBannerProps) {
   const colors = {
     iovine: {
       gradient: "from-cyan-500 to-blue-500",
@@ -46,34 +50,38 @@ export function PlayerBanner({ playerName, team }: PlayerBannerProps) {
       >
         {/* Left side - Status indicator */}
         <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 ${theme.pulse} rounded-full animate-pulse`}></div>
-          <div className="text-xs text-gray-400 tracking-wider">ACTIVE PLAYER</div>
+          <div
+            className={`w-3 h-3 ${theme.pulse} rounded-full animate-pulse`}
+          ></div>
+          <div className="text-xs text-gray-400 tracking-wider">
+            ACTIVE PLAYER
+          </div>
         </div>
 
         {/* Center - Player info */}
         <div className="flex items-center gap-4">
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">PLAYER</div>
-            <div className={`text-2xl font-bold ${theme.text} tracking-wider uppercase`}>
+            <div
+              className={`text-2xl font-bold ${theme.text} tracking-wider uppercase`}
+            >
               {playerName}
             </div>
           </div>
           <div className="h-12 w-px bg-gray-700"></div>
           <div className="text-center">
             <div className="text-xs text-gray-500 mb-1">TEAM</div>
-            <div className={`text-2xl font-bold ${theme.text} tracking-wider uppercase`}>
+            <div
+              className={`text-2xl font-bold ${theme.text} tracking-wider uppercase`}
+            >
               {team}
             </div>
           </div>
         </div>
 
-        {/* Right side - Team indicator */}
-        <div className="flex items-center gap-2">
-          <div className={`px-4 py-2 ${theme.bg} border-2 ${theme.border} rounded`}>
-            <div className={`text-sm font-bold ${theme.text} tracking-wider`}>
-              {team === "iovine" ? "🔵 BLUE" : "🔴 RED"}
-            </div>
-          </div>
+        {/* Right side - Team indicator and coins */}
+        <div className="flex items-center gap-4">
+          <CurrencyDisplay coins={coins} />
         </div>
       </div>
     </div>
