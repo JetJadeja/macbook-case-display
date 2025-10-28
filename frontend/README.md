@@ -2,6 +2,23 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Environment Setup
+
+Before running the app, you need to set up your environment variables:
+
+1. Copy `.env.example` to `.env` in the `frontend` directory:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update the `.env` file with your backend URL (defaults to `http://localhost:3001`):
+   ```
+   REACT_APP_BACKEND_URL=http://localhost:3001
+   ```
+
+**Note:** After creating or modifying the `.env` file, you must restart the development server for changes to take effect.
+
 ## Available Scripts
 
 In the project directory, you can run:

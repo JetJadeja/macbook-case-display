@@ -6,6 +6,7 @@ import { TeamCard } from "../components/TeamCard";
 import { StatusPanel } from "../components/StatusPanel";
 import { JoinForm } from "../components/JoinForm";
 import { ArcadeFooter } from "../components/ArcadeFooter";
+import { config } from "../config";
 
 interface GameState {
   players: {
@@ -46,7 +47,7 @@ function Home() {
 
   const fetchGameState = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/game");
+      const response = await fetch(`${config.backendUrl}/api/game`);
       const data = await response.json();
       setGameState(data);
     } catch (error) {
@@ -62,7 +63,7 @@ function Home() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/join", {
+      const response = await fetch(`${config.backendUrl}/api/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), team: selectedTeam }),
@@ -107,7 +108,8 @@ function Home() {
     }
   };
 
-  const isJoinDisabled = gameState?.phase === "active" || gameState?.phase === "ended";
+  const isJoinDisabled =
+    gameState?.phase === "active" || gameState?.phase === "ended";
 
   return (
     <div className="h-screen bg-black relative overflow-hidden pixel-font">

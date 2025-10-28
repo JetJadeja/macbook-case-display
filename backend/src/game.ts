@@ -85,20 +85,20 @@ class GameManager {
 
   /**
    * Calculate win threshold based on team sizes
-   * Placeholder formula - can be adjusted later
+   * Uses 1.5 power scaling: largestTeam^1.5 × 11,180
+   * 20 players = 1,000,000 points
    */
   private calculateWinThreshold(): number {
     const iovineCount = Array.from(this.state.players.values())
       .filter(p => p.team === 'iovine').length;
     const youngCount = Array.from(this.state.players.values())
       .filter(p => p.team === 'young').length;
-    const totalPlayers = iovineCount + youngCount;
+    const largestTeam = Math.max(iovineCount, youngCount);
 
-    // Placeholder formula: 50 points per player
-    // Can be adjusted based on testing
-    const threshold = Math.max(300, totalPlayers * 50);
+    // Linear formula: 10k base + 5.5k per player on largest team
+    const threshold = 10000 + (largestTeam * 5500);
 
-    console.log(`Win threshold calculated: ${threshold} (${totalPlayers} players)`);
+    console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
   }
 

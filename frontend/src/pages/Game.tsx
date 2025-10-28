@@ -11,11 +11,24 @@ import { ShopModal } from "../components/ShopModal";
 import { ActiveEffectsBar, ActiveEffect } from "../components/ActiveEffectsBar";
 import { WarmupBanner } from "../components/WarmupBanner";
 import { LeaveGameModal } from "../components/LeaveGameModal";
+import { PostWarmupModal } from "../components/PostWarmupModal";
+import { VictoryModal } from "../components/VictoryModal";
+import { config } from "../config";
 
 interface GameState {
   players: {
-    iovine: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
-    young: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
+    iovine: Array<{
+      name: string;
+      clicks: number;
+      coins: number;
+      activeEffects: ActiveEffect[];
+    }>;
+    young: Array<{
+      name: string;
+      clicks: number;
+      coins: number;
+      activeEffects: ActiveEffect[];
+    }>;
   };
   scores: {
     iovine: number;
@@ -36,6 +49,8 @@ function Game() {
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [showPostWarmupModal, setShowPostWarmupModal] = useState(false);
+  const [hasShownPostWarmup, setHasShownPostWarmup] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [playerTeam, setPlayerTeam] = useState<"iovine" | "young" | null>(null);
@@ -81,7 +96,7 @@ function Game() {
 
   const fetchGameState = async () => {
     try {
-      const response = await fetch("http://localhost:3001/api/game");
+      const response = await fetch(`${config.backendUrl}/api/game`);
       const data = await response.json();
       setGameState(data);
 
@@ -90,8 +105,8 @@ function Game() {
         const myTeamPlayers = data.players[playerTeam];
         const myPlayer = myTeamPlayers.find((p: any) => p.name === playerName);
         if (myPlayer) {
-          setCoins(myPlayer.coins);
-          setActiveEffects(myPlayer.activeEffects);
+          setCoins(myPlayer.coins ?? 0);
+          setActiveEffects(myPlayer.activeEffects ?? []);
         }
       }
     } catch (error) {
@@ -99,9 +114,21 @@ function Game() {
     }
   };
 
+  // Watch for phase changes to show post-warmup modal
+  useEffect(() => {
+    if (
+      gameState?.phase === "active" &&
+      gameState.winThreshold &&
+      !hasShownPostWarmup
+    ) {
+      setShowPostWarmupModal(true);
+      setHasShownPostWarmup(true);
+    }
+  }, [gameState?.phase, gameState?.winThreshold, hasShownPostWarmup]);
+
   const sendHeartbeat = async (id: string) => {
     try {
-      const response = await fetch("http://localhost:3001/api/heartbeat", {
+      const response = await fetch(`${config.backendUrl}/api/heartbeat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId: id }),
@@ -121,7 +148,7 @@ function Game() {
     if (!playerId) return;
 
     try {
-      const response = await fetch("http://localhost:3001/api/click", {
+      const response = await fetch(`${config.backendUrl}/api/click`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
@@ -144,7 +171,8 @@ function Game() {
           : null
       );
       setPersonalClicks((prev) => prev + 1);
-      setCoins(data.coins);
+      // Ensure coins is always a valid number
+      setCoins(data.coins ?? 0);
     } catch (error) {
       console.error("Failed to register click:", error);
     }
@@ -152,7 +180,11 @@ function Game() {
 
   const handleLeaveGame = () => {
     // If waiting or ended phase, leave immediately
-    if (!gameState || gameState.phase === "waiting" || gameState.phase === "ended") {
+    if (
+      !gameState ||
+      gameState.phase === "waiting" ||
+      gameState.phase === "ended"
+    ) {
       navigate("/");
       return;
     }
@@ -203,9 +235,7 @@ function Game() {
 
       {/* Warmup Banner - Fixed at top */}
       {gameState?.phase === "warmup" && (
-        <WarmupBanner
-          timeRemaining={gameState.warmupTimeRemaining ?? 30}
-        />
+        <WarmupBanner timeRemaining={gameState.warmupTimeRemaining ?? 30} />
       )}
 
       <div className="relative z-10 h-full flex flex-col items-center justify-center p-4 overflow-y-auto">
@@ -215,7 +245,11 @@ function Game() {
           }`}
         >
           {/* Player Banner */}
-          <PlayerBanner playerName={playerName} team={playerTeam} coins={coins} />
+          <PlayerBanner
+            playerName={playerName}
+            team={playerTeam}
+            coins={coins}
+          />
 
           {/* Active Effects Bar */}
           {activeEffects.length > 0 && (
@@ -262,7 +296,10 @@ function Game() {
           />
 
           {/* Game Controls */}
-          <GameControls onLeaveGame={handleLeaveGame} onOpenShop={handleOpenShop} />
+          <GameControls
+            onLeaveGame={handleLeaveGame}
+            onOpenShop={handleOpenShop}
+          />
 
           {/* Footer */}
           <ArcadeFooter />
@@ -286,6 +323,23 @@ function Game() {
         onCancel={() => setIsLeaveModalOpen(false)}
         onConfirm={confirmLeaveGame}
       />
+
+      {/* Post-Warmup Modal */}
+      {showPostWarmupModal && gameState?.winThreshold && (
+        <PostWarmupModal
+          winThreshold={gameState.winThreshold}
+          onClose={() => setShowPostWarmupModal(false)}
+        />
+      )}
+
+      {/* Victory Modal */}
+      {gameState?.phase === "ended" && gameState.winner && playerTeam && (
+        <VictoryModal
+          winner={gameState.winner as "iovine" | "young"}
+          playerTeam={playerTeam}
+          onRedirect={() => navigate("/")}
+        />
+      )}
     </div>
   );
 }
