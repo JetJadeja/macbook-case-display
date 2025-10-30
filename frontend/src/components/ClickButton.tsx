@@ -8,7 +8,7 @@ import { useState } from "react";
  * - Pulse animations and glow effects
  * - Color scheme based on team
  * - Visual feedback on click (ripple effect)
- * - Click count display
+ * - Click count display with decimals
  */
 
 interface ClickButtonProps {
@@ -96,13 +96,13 @@ export function ClickButton({
             CLICK!
           </div>
 
-          {/* Click count */}
+          {/* Score contribution */}
           <div className="bg-black/50 px-8 py-4 rounded-lg border-2 border-white/30 backdrop-blur-sm">
             <div className="text-xs text-white/70 mb-1 tracking-widest text-center">
-              YOUR CLICKS
+              YOUR SCORE
             </div>
             <div className={`text-4xl font-bold ${theme.text} tabular-nums`}>
-              {personalClicks.toString().padStart(4, "0")}
+              {personalClicks.toFixed(1)}
             </div>
           </div>
         </div>

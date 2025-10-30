@@ -1,3 +1,5 @@
+import { formatCoins } from "../utils/formatNumber";
+
 /**
  * CurrencyDisplay Component
  *
@@ -21,7 +23,7 @@ export function CurrencyDisplay({ coins }: CurrencyDisplayProps) {
             COINS
           </div>
           <div className="text-2xl font-bold text-yellow-400 tabular-nums">
-            {displayCoins.toString().padStart(4, "0")}
+            {formatCoins(displayCoins)}
           </div>
         </div>
       </div>

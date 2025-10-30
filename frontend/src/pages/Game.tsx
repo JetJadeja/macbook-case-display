@@ -13,6 +13,7 @@ import { WarmupBanner } from "../components/WarmupBanner";
 import { LeaveGameModal } from "../components/LeaveGameModal";
 import { PostWarmupModal } from "../components/PostWarmupModal";
 import { VictoryModal } from "../components/VictoryModal";
+import { DebugModal } from "../components/DebugModal";
 import { config } from "../config";
 
 interface GameState {
@@ -45,12 +46,14 @@ function Game() {
   const location = useLocation();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [personalClicks, setPersonalClicks] = useState(0);
+  const [personalScore, setPersonalScore] = useState(0);
   const [coins, setCoins] = useState(0);
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [showPostWarmupModal, setShowPostWarmupModal] = useState(false);
   const [hasShownPostWarmup, setHasShownPostWarmup] = useState(false);
+  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string | null>(null);
   const [playerTeam, setPlayerTeam] = useState<"iovine" | "young" | null>(null);
@@ -126,6 +129,19 @@ function Game() {
     }
   }, [gameState?.phase, gameState?.winThreshold, hasShownPostWarmup]);
 
+  // Keyboard shortcut listener for debug modal (Cmd+J or Ctrl+J)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "j") {
+        e.preventDefault();
+        setIsDebugModalOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const sendHeartbeat = async (id: string) => {
     try {
       const response = await fetch(`${config.backendUrl}/api/heartbeat`, {
@@ -162,6 +178,23 @@ function Game() {
       }
 
       const data = await response.json();
+
+      // Calculate score contribution from this click
+      const scoreContribution = data.stats
+        ? 1.0 * data.stats.totalClickMultiplier
+        : 1.0;
+
+      // Log changes for debugging
+      const oldCoins = coins;
+      const newCoins = data.coins ?? 0;
+      const coinGain = newCoins - oldCoins;
+
+      console.log(`[CLICK] Score contribution: +${scoreContribution.toFixed(2)}`);
+      console.log(`[CLICK] Coins: ${oldCoins.toFixed(2)} → ${newCoins.toFixed(2)} (+${coinGain.toFixed(2)})`);
+      if (data.stats) {
+        console.log(`[CLICK] Multipliers: Click=${data.stats.totalClickMultiplier.toFixed(2)}x, Coin=${data.stats.totalCoinMultiplier.toFixed(2)}x`);
+      }
+
       setGameState((prev) =>
         prev
           ? {
@@ -171,8 +204,8 @@ function Game() {
           : null
       );
       setPersonalClicks((prev) => prev + 1);
-      // Ensure coins is always a valid number
-      setCoins(data.coins ?? 0);
+      setPersonalScore((prev) => prev + scoreContribution);
+      setCoins(newCoins);
     } catch (error) {
       console.error("Failed to register click:", error);
     }
@@ -206,16 +239,69 @@ function Game() {
     setIsShopOpen(false);
   };
 
-  const handlePurchase = async (itemId: string, cost: number) => {
-    // Placeholder for shop purchase logic
-    // TODO: Implement backend endpoint for purchasing items
-    console.log(`Purchasing ${itemId} for ${cost} coins`);
+  const handlePurchase = async (itemId: string) => {
+    if (!playerId) return;
 
-    // For now, just deduct coins locally (will be replaced with API call)
-    if (coins >= cost) {
-      setCoins(coins - cost);
+    try {
+      const response = await fetch(`${config.backendUrl}/api/shop/purchase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, itemId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Purchase failed:", error.error);
+        alert(`Purchase failed: ${error.error}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Update coins
+      if (data.newCoins !== undefined) {
+        setCoins(data.newCoins);
+      }
+
+      // Close shop and show success
       setIsShopOpen(false);
-      // TODO: Add item to activeEffects
+      console.log(`Successfully purchased ${itemId}`);
+
+    } catch (error) {
+      console.error("Failed to purchase item:", error);
+      alert("Failed to purchase item. Please try again.");
+    }
+  };
+
+  const handleDebugUpdate = async (newCoins: number, newClicks: number) => {
+    if (!playerId) return;
+
+    try {
+      const response = await fetch(`${config.backendUrl}/api/debug/update-player`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId,
+          coins: newCoins,
+          clicks: newClicks,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Debug update failed:", error.error);
+        alert(`Debug update failed: ${error.error}`);
+        return;
+      }
+
+      // Update local state immediately for responsiveness
+      setCoins(newCoins);
+      setPersonalClicks(newClicks);
+      setPersonalScore(newClicks); // Also update personal score to match
+      console.log(`Debug: Updated coins to ${newCoins}, clicks/score to ${newClicks}`);
+    } catch (error) {
+      console.error("Failed to update debug values:", error);
+      alert("Failed to update debug values. Please try again.");
     }
   };
 
@@ -273,7 +359,7 @@ function Game() {
               <ClickButton
                 onClick={handleClick}
                 teamColor={teamColor}
-                personalClicks={personalClicks}
+                personalClicks={personalScore}
               />
             </div>
 
@@ -314,6 +400,7 @@ function Game() {
         onPurchase={handlePurchase}
         phase={gameState?.phase}
         warmupTimeRemaining={gameState?.warmupTimeRemaining}
+        playerId={playerId}
       />
 
       {/* Leave Confirmation Modal */}
@@ -340,6 +427,15 @@ function Game() {
           onRedirect={() => navigate("/")}
         />
       )}
+
+      {/* Debug Modal */}
+      <DebugModal
+        isOpen={isDebugModalOpen}
+        onClose={() => setIsDebugModalOpen(false)}
+        currentCoins={coins}
+        currentClicks={personalClicks}
+        onUpdate={handleDebugUpdate}
+      />
     </div>
   );
 }

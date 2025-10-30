@@ -1,3 +1,5 @@
+import { formatNumber } from "../utils/formatNumber";
+
 /**
  * TugOfWarBar Component
  *
@@ -92,7 +94,7 @@ export function TugOfWarBar({
               className={`text-sm ${iovineWinning ? "text-cyan-300" : "text-red-300"}`}
             >
               {iovineWinning ? "IOVINE" : "YOUNG"} LEADS BY{" "}
-              <span className="font-bold text-lg tabular-nums">{lead}</span>
+              <span className="font-bold text-lg tabular-nums">{formatNumber(lead)}</span>
             </div>
           )}
 
@@ -100,7 +102,7 @@ export function TugOfWarBar({
           {winThreshold !== null && winThreshold !== undefined && (
             <div className="text-xs text-purple-400">
               First to{" "}
-              <span className="font-bold text-white">{winThreshold}</span> wins
+              <span className="font-bold text-white">{formatNumber(winThreshold)}</span> wins
             </div>
           )}
         </div>

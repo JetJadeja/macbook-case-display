@@ -22558,6 +22558,495 @@ var import_cors = __toESM(require_lib3(), 1);
 // src/game.ts
 import { randomUUID } from "crypto";
 
+// src/shopCatalog.ts
+var SHOP_CATALOG = [
+  {
+    id: "starter-boost",
+    name: "Starter Boost",
+    description: "Permanently multiply your clicks by 1.2x",
+    icon: "⚡",
+    category: "power",
+    purchaseType: "individual",
+    cost: 100,
+    clickMultiplier: 1.2,
+    buildPath: "power-rush",
+    tier: 1
+  },
+  {
+    id: "power-surge",
+    name: "Power Surge",
+    description: "Permanently multiply your clicks by 1.5x",
+    icon: "⚡⚡",
+    category: "power",
+    purchaseType: "individual",
+    cost: 300,
+    clickMultiplier: 1.5,
+    buildPath: "power-rush",
+    recommendAfter: ["starter-boost"],
+    tier: 2
+  },
+  {
+    id: "mega-force",
+    name: "Mega Force",
+    description: "Permanently multiply your clicks by 2x",
+    icon: "⚡⚡⚡",
+    category: "power",
+    purchaseType: "individual",
+    cost: 800,
+    clickMultiplier: 2,
+    buildPath: "power-rush",
+    recommendAfter: ["power-surge"],
+    tier: 3
+  },
+  {
+    id: "ultra-power",
+    name: "Ultra Power",
+    description: "Permanently multiply your clicks by 3x",
+    icon: "⚡⚡⚡⚡",
+    category: "power",
+    purchaseType: "individual",
+    cost: 2000,
+    clickMultiplier: 3,
+    buildPath: "power-rush",
+    recommendAfter: ["mega-force"],
+    tier: 4
+  },
+  {
+    id: "god-mode",
+    name: "God Mode",
+    description: "Permanently multiply your clicks by 5x",
+    icon: "⚡⚡⚡⚡⚡",
+    category: "power",
+    purchaseType: "individual",
+    cost: 5000,
+    clickMultiplier: 5,
+    buildPath: "power-rush",
+    recommendAfter: ["ultra-power"],
+    tier: 5
+  },
+  {
+    id: "transcendent",
+    name: "Transcendent",
+    description: "Permanently multiply your clicks by 10x",
+    icon: "\uD83D\uDCAB",
+    category: "power",
+    purchaseType: "individual",
+    cost: 12000,
+    clickMultiplier: 10,
+    buildPath: "power-rush",
+    recommendAfter: ["god-mode"],
+    tier: 5
+  },
+  {
+    id: "penny-saver",
+    name: "Penny Saver",
+    description: "Permanently multiply coins earned by 1.5x",
+    icon: "\uD83D\uDCB0",
+    category: "economy",
+    purchaseType: "individual",
+    cost: 150,
+    coinMultiplier: 1.5,
+    buildPath: "economist",
+    tier: 1
+  },
+  {
+    id: "money-maker",
+    name: "Money Maker",
+    description: "Permanently multiply coins earned by 2x",
+    icon: "\uD83D\uDCB0\uD83D\uDCB0",
+    category: "economy",
+    purchaseType: "individual",
+    cost: 400,
+    coinMultiplier: 2,
+    buildPath: "economist",
+    recommendAfter: ["penny-saver"],
+    tier: 2
+  },
+  {
+    id: "tycoon",
+    name: "Tycoon",
+    description: "Permanently multiply coins earned by 3x",
+    icon: "\uD83D\uDCB0\uD83D\uDCB0\uD83D\uDCB0",
+    category: "economy",
+    purchaseType: "individual",
+    cost: 1000,
+    coinMultiplier: 3,
+    buildPath: "economist",
+    recommendAfter: ["money-maker"],
+    tier: 3
+  },
+  {
+    id: "interest-i",
+    name: "Interest I",
+    description: "Earn +1 coin per second passively",
+    icon: "\uD83C\uDFE6",
+    category: "passive",
+    purchaseType: "individual",
+    cost: 300,
+    passiveIncome: 1,
+    buildPath: "economist",
+    tier: 2
+  },
+  {
+    id: "interest-ii",
+    name: "Interest II",
+    description: "Earn +3 coins per second passively",
+    icon: "\uD83C\uDFE6\uD83C\uDFE6",
+    category: "passive",
+    purchaseType: "individual",
+    cost: 800,
+    passiveIncome: 3,
+    buildPath: "economist",
+    recommendAfter: ["interest-i"],
+    tier: 3
+  },
+  {
+    id: "interest-iii",
+    name: "Interest III",
+    description: "Earn +10 coins per second passively",
+    icon: "\uD83C\uDFE6\uD83C\uDFE6\uD83C\uDFE6",
+    category: "passive",
+    purchaseType: "individual",
+    cost: 2500,
+    passiveIncome: 10,
+    buildPath: "economist",
+    recommendAfter: ["interest-ii"],
+    tier: 4
+  },
+  {
+    id: "synergy-boost",
+    name: "Synergy Boost",
+    description: "All your multipliers gain +20% effectiveness",
+    icon: "✨",
+    category: "synergy",
+    purchaseType: "individual",
+    cost: 1000,
+    buildPath: "balanced",
+    tier: 3
+  },
+  {
+    id: "compound-growth",
+    name: "Compound Growth",
+    description: "Passive income increases by 50% every minute",
+    icon: "\uD83D\uDCC8",
+    category: "synergy",
+    purchaseType: "individual",
+    cost: 2000,
+    buildPath: "economist",
+    recommendAfter: ["interest-i"],
+    tier: 4
+  },
+  {
+    id: "rally-cry",
+    name: "Rally Cry",
+    description: "Team gets +10% clicks (you get +12.5%)",
+    icon: "\uD83D\uDCE3",
+    category: "team-aura",
+    purchaseType: "team",
+    cost: 1200,
+    teamClickBonus: 0.1,
+    buyerBonusMultiplier: 1.25,
+    buildPath: "team-player",
+    tier: 2
+  },
+  {
+    id: "war-drums",
+    name: "War Drums",
+    description: "Team gets +20% clicks (you get +25%)",
+    icon: "\uD83E\uDD41",
+    category: "team-aura",
+    purchaseType: "team",
+    cost: 3000,
+    teamClickBonus: 0.2,
+    buyerBonusMultiplier: 1.25,
+    buildPath: "team-player",
+    recommendAfter: ["rally-cry"],
+    tier: 4
+  },
+  {
+    id: "battle-hymn",
+    name: "Battle Hymn",
+    description: "Team gets +40% clicks (you get +50%)",
+    icon: "\uD83C\uDFBA",
+    category: "team-aura",
+    purchaseType: "team",
+    cost: 7000,
+    teamClickBonus: 0.4,
+    buyerBonusMultiplier: 1.25,
+    buildPath: "team-player",
+    recommendAfter: ["war-drums"],
+    tier: 5
+  },
+  {
+    id: "team-treasury",
+    name: "Team Treasury",
+    description: "Team gets +15% coins (you get +18.75%)",
+    icon: "\uD83D\uDC8E",
+    category: "team-economy",
+    purchaseType: "team",
+    cost: 1500,
+    teamCoinBonus: 0.15,
+    buyerBonusMultiplier: 1.25,
+    buildPath: "team-player",
+    tier: 2
+  },
+  {
+    id: "empire-fund",
+    name: "Empire Fund",
+    description: "Team gets +30% coins (you get +37.5%)",
+    icon: "\uD83D\uDC8E\uD83D\uDC8E",
+    category: "team-economy",
+    purchaseType: "team",
+    cost: 4000,
+    teamCoinBonus: 0.3,
+    buyerBonusMultiplier: 1.25,
+    buildPath: "team-player",
+    recommendAfter: ["team-treasury"],
+    tier: 4
+  },
+  {
+    id: "minor-sabotage",
+    name: "Minor Sabotage",
+    description: "Reduce enemy score by 5% immediately",
+    icon: "\uD83D\uDCA3",
+    category: "offensive",
+    purchaseType: "individual",
+    cost: 500,
+    instantScoreDamage: 0.05,
+    buildPath: "aggressor",
+    tier: 2
+  },
+  {
+    id: "major-sabotage",
+    name: "Major Sabotage",
+    description: "Reduce enemy score by 12% immediately",
+    icon: "\uD83D\uDCA3\uD83D\uDCA3",
+    category: "offensive",
+    purchaseType: "individual",
+    cost: 2000,
+    instantScoreDamage: 0.12,
+    buildPath: "aggressor",
+    recommendAfter: ["minor-sabotage"],
+    tier: 4
+  },
+  {
+    id: "devastate",
+    name: "Devastate",
+    description: "Reduce enemy score by 20% immediately",
+    icon: "\uD83D\uDCA3\uD83D\uDCA3\uD83D\uDCA3",
+    category: "offensive",
+    purchaseType: "individual",
+    cost: 5000,
+    instantScoreDamage: 0.2,
+    buildPath: "aggressor",
+    recommendAfter: ["major-sabotage"],
+    tier: 5
+  },
+  {
+    id: "coin-heist",
+    name: "Coin Heist",
+    description: "Steal 500 coins from richest enemy player",
+    icon: "\uD83C\uDFAD",
+    category: "offensive",
+    purchaseType: "individual",
+    cost: 700,
+    instantCoinSteal: 500,
+    buildPath: "aggressor",
+    tier: 2
+  },
+  {
+    id: "grand-heist",
+    name: "Grand Heist",
+    description: "Steal 2000 coins from richest enemy player",
+    icon: "\uD83C\uDFAD\uD83C\uDFAD",
+    category: "offensive",
+    purchaseType: "individual",
+    cost: 3000,
+    instantCoinSteal: 2000,
+    buildPath: "aggressor",
+    recommendAfter: ["coin-heist"],
+    tier: 4
+  },
+  {
+    id: "underdog-bonus",
+    name: "Underdog Bonus",
+    description: "2x personal multiplier while losing by 15%+",
+    icon: "\uD83D\uDC36",
+    category: "special",
+    purchaseType: "individual",
+    cost: 800,
+    clickMultiplier: 2,
+    onlyWhenLosing: true,
+    losingThreshold: 0.15,
+    tier: 3
+  },
+  {
+    id: "desperation",
+    name: "Desperation",
+    description: "3x personal multiplier (only when losing by 30%+)",
+    icon: "\uD83D\uDD25",
+    category: "special",
+    purchaseType: "individual",
+    cost: 2500,
+    clickMultiplier: 3,
+    onlyWhenLosing: true,
+    losingThreshold: 0.3,
+    tier: 4
+  }
+];
+function getShopItem(itemId) {
+  return SHOP_CATALOG.find((item) => item.id === itemId) || null;
+}
+function getAvailableItems(player, gameState) {
+  if (gameState.phase !== "active" && gameState.phase !== "warmup") {
+    return [];
+  }
+  const playerTeam = player.team;
+  const enemyTeam = playerTeam === "iovine" ? "young" : "iovine";
+  const teamScore = gameState.scores[playerTeam];
+  const enemyScore = gameState.scores[enemyTeam];
+  const totalScore = teamScore + enemyScore;
+  let losingBy = 0;
+  let winningBy = 0;
+  if (totalScore > 0) {
+    if (enemyScore > teamScore) {
+      losingBy = (enemyScore - teamScore) / totalScore;
+    } else if (teamScore > enemyScore) {
+      winningBy = (teamScore - enemyScore) / totalScore;
+    }
+  }
+  const teamUpgrades = gameState.teamUpgrades[playerTeam];
+  const teamItemIds = teamUpgrades.map((item) => item.itemId);
+  const playerItemIds = player.purchasedItems.map((p) => p.itemId);
+  const allOwnedItems = [...playerItemIds, ...teamItemIds];
+  return SHOP_CATALOG.filter((item) => {
+    if (item.purchaseType === "team" && teamItemIds.includes(item.id)) {
+      return false;
+    }
+    if (item.onlyWhenLosing && (!item.losingThreshold || losingBy < item.losingThreshold)) {
+      return false;
+    }
+    if (item.onlyWhenWinning && (!item.winningThreshold || winningBy < item.winningThreshold)) {
+      return false;
+    }
+    if (item.recommendAfter && item.recommendAfter.length > 0) {
+      const hasPrerequisite = item.recommendAfter.some((prereqId) => allOwnedItems.includes(prereqId));
+      if (!hasPrerequisite) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+// src/multiplierEngine.ts
+function calculatePlayerStats(player, teamUpgrades, gameState) {
+  let highestClickMult = 1;
+  let highestCoinMult = 1;
+  let passiveIncome = 0;
+  let synergies = 1;
+  let compoundGrowthStacks = 0;
+  let isLosing = false;
+  let losingBy = 0;
+  if (gameState) {
+    const enemyTeam = player.team === "iovine" ? "young" : "iovine";
+    const myScore = gameState.scores[player.team];
+    const enemyScore = gameState.scores[enemyTeam];
+    const totalScore = myScore + enemyScore;
+    if (totalScore > 0 && enemyScore > myScore) {
+      isLosing = true;
+      losingBy = (enemyScore - myScore) / totalScore;
+    }
+  }
+  for (const purchase of player.purchasedItems) {
+    const item = getShopItem(purchase.itemId);
+    if (!item) {
+      console.log(`[DEBUG] Item not found: ${purchase.itemId}`);
+      continue;
+    }
+    if (item.onlyWhenLosing && (!isLosing || losingBy < (item.losingThreshold || 0))) {
+      console.log(`[DEBUG] Skipping ${item.name} - not losing enough (losingBy: ${losingBy}, threshold: ${item.losingThreshold})`);
+      continue;
+    }
+    if (item.onlyWhenWinning) {
+      continue;
+    }
+    if (item.clickMultiplier) {
+      if (item.clickMultiplier > highestClickMult) {
+        console.log(`[DEBUG] New highest click multiplier: ${item.name} (${item.clickMultiplier}x, was ${highestClickMult}x)`);
+        highestClickMult = item.clickMultiplier;
+      } else {
+        console.log(`[DEBUG] Ignoring ${item.name} click multiplier (${item.clickMultiplier}x, current best: ${highestClickMult}x)`);
+      }
+    }
+    if (item.coinMultiplier) {
+      if (item.coinMultiplier > highestCoinMult) {
+        console.log(`[DEBUG] New highest coin multiplier: ${item.name} (${item.coinMultiplier}x)`);
+        highestCoinMult = item.coinMultiplier;
+      }
+    }
+    if (item.passiveIncome) {
+      passiveIncome += item.passiveIncome;
+    }
+    if (item.id === "synergy-boost") {
+      synergies = 1.2;
+    }
+    if (item.id === "compound-growth") {
+      const minutesElapsed = Math.floor((Date.now() - purchase.purchasedAt) / 60000);
+      compoundGrowthStacks = minutesElapsed;
+    }
+  }
+  const individualClickMult = 1 + (highestClickMult - 1) * synergies;
+  const individualCoinMult = 1 + (highestCoinMult - 1) * synergies;
+  if (compoundGrowthStacks > 0) {
+    passiveIncome *= Math.pow(1.5, compoundGrowthStacks);
+  }
+  let teamClickBonus = 0;
+  let teamCoinBonus = 0;
+  let buyerClickBonus = 0;
+  let buyerCoinBonus = 0;
+  for (const teamPurchase of teamUpgrades) {
+    const item = getShopItem(teamPurchase.itemId);
+    if (!item)
+      continue;
+    const isBuyer = teamPurchase.purchasedBy === player.id;
+    if (item.teamClickBonus) {
+      const bonus = item.teamClickBonus;
+      teamClickBonus += bonus;
+      if (isBuyer && item.buyerBonusMultiplier) {
+        const buyerBonus = bonus * item.buyerBonusMultiplier;
+        buyerClickBonus += buyerBonus - bonus;
+      }
+    }
+    if (item.teamCoinBonus) {
+      const bonus = item.teamCoinBonus;
+      teamCoinBonus += bonus;
+      if (isBuyer && item.buyerBonusMultiplier) {
+        const buyerBonus = bonus * item.buyerBonusMultiplier;
+        buyerCoinBonus += buyerBonus - bonus;
+      }
+    }
+  }
+  const teamClickMultiplier = 1 + teamClickBonus + buyerClickBonus;
+  const teamCoinMultiplier = 1 + teamCoinBonus + buyerCoinBonus;
+  const totalClickMultiplier = individualClickMult * teamClickMultiplier;
+  const totalCoinMultiplier = individualCoinMult * teamCoinMultiplier;
+  console.log(`[DEBUG] Final stats for ${player.name}:`);
+  console.log(`  Individual click mult: ${individualClickMult}, Team mult: ${teamClickMultiplier}`);
+  console.log(`  TOTAL CLICK MULTIPLIER: ${totalClickMultiplier}x`);
+  console.log(`  Total coin multiplier: ${totalCoinMultiplier}x`);
+  return {
+    totalClickMultiplier,
+    totalCoinMultiplier,
+    passiveIncomeRate: passiveIncome,
+    individualClickMultiplier: individualClickMult,
+    teamClickMultiplier,
+    individualCoinMultiplier: individualCoinMult,
+    teamCoinMultiplier
+  };
+}
+
+// src/game.ts
 class GameManager {
   state;
   emptyTeamTimers;
@@ -22570,7 +23059,9 @@ class GameManager {
       winner: null,
       warmupStartTime: null,
       warmupDuration: 30000,
-      winThreshold: null
+      winThreshold: null,
+      teamUpgrades: { iovine: [], young: [] },
+      lastPassiveIncomeUpdate: Date.now()
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -22582,7 +23073,7 @@ class GameManager {
     };
   }
   joinGame(name, team) {
-    if (this.state.phase !== "waiting") {
+    if (this.state.phase === "active" || this.state.phase === "ended") {
       console.log(`Join blocked: game in ${this.state.phase} phase`);
       return null;
     }
@@ -22593,7 +23084,9 @@ class GameManager {
       clicks: 0,
       coins: 0,
       lastSeen: Date.now(),
-      activeEffects: []
+      activeEffects: [],
+      purchasedItems: [],
+      selectedBuildPath: undefined
     };
     this.state.players.set(player.id, player);
     this.hasHadPlayers[team] = true;
@@ -22614,9 +23107,9 @@ class GameManager {
   calculateWinThreshold() {
     const iovineCount = Array.from(this.state.players.values()).filter((p) => p.team === "iovine").length;
     const youngCount = Array.from(this.state.players.values()).filter((p) => p.team === "young").length;
-    const totalPlayers = iovineCount + youngCount;
-    const threshold = Math.max(300, totalPlayers * 50);
-    console.log(`Win threshold calculated: ${threshold} (${totalPlayers} players)`);
+    const largestTeam = Math.max(iovineCount, youngCount);
+    const threshold = largestTeam * 4500;
+    console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
   }
   checkWarmupExpiration() {
@@ -22645,17 +23138,43 @@ class GameManager {
   registerClick(playerId) {
     const player = this.state.players.get(playerId);
     if (!player) {
-      return { success: false, scores: this.state.scores, coins: 0 };
+      return {
+        success: false,
+        scores: this.state.scores,
+        coins: 0,
+        stats: {
+          totalClickMultiplier: 1,
+          totalCoinMultiplier: 1,
+          passiveIncomeRate: 0,
+          individualClickMultiplier: 1,
+          teamClickMultiplier: 1,
+          individualCoinMultiplier: 1,
+          teamCoinMultiplier: 1
+        }
+      };
     }
+    const teamUpgrades = this.state.teamUpgrades[player.team];
+    const stats = calculatePlayerStats(player, teamUpgrades, this.state);
     player.clicks += 1;
-    player.coins += 1;
+    const scoreValue = 1 * stats.totalClickMultiplier;
+    const coinValue = 1 * stats.totalCoinMultiplier;
+    console.log(`[CLICK] ${player.name} clicked! Score value: ${scoreValue} (multiplier: ${stats.totalClickMultiplier}x)`);
+    console.log(`[CLICK] Purchased items: ${player.purchasedItems.map((p) => p.itemId).join(", ") || "none"}`);
+    player.coins += coinValue;
     player.lastSeen = Date.now();
+    const oldScore = this.state.scores[player.team];
     if (player.team === "iovine") {
-      this.state.scores.iovine += 1;
+      this.state.scores.iovine += scoreValue;
     } else {
-      this.state.scores.young += 1;
+      this.state.scores.young += scoreValue;
     }
-    return { success: true, scores: this.state.scores, coins: player.coins };
+    console.log(`[CLICK] Team ${player.team} score: ${oldScore} -> ${this.state.scores[player.team]} (+${scoreValue})`);
+    return {
+      success: true,
+      scores: this.state.scores,
+      coins: player.coins,
+      stats
+    };
   }
   updateHeartbeat(playerId) {
     const player = this.state.players.get(playerId);
@@ -22665,10 +23184,113 @@ class GameManager {
     player.lastSeen = Date.now();
     return true;
   }
+  updatePassiveIncome() {
+    const now = Date.now();
+    const lastUpdate = this.state.lastPassiveIncomeUpdate || now;
+    const elapsedSeconds = (now - lastUpdate) / 1000;
+    if (elapsedSeconds < 1)
+      return;
+    if (this.state.phase !== "active") {
+      this.state.lastPassiveIncomeUpdate = now;
+      return;
+    }
+    for (const [playerId, player] of this.state.players) {
+      const teamUpgrades = this.state.teamUpgrades[player.team];
+      const stats = calculatePlayerStats(player, teamUpgrades, this.state);
+      if (stats.passiveIncomeRate > 0) {
+        const coinGain = stats.passiveIncomeRate * elapsedSeconds;
+        player.coins += coinGain;
+      }
+    }
+    this.state.lastPassiveIncomeUpdate = now;
+  }
+  purchaseItem(playerId, itemId) {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: "Player not found" };
+    }
+    if (this.state.phase !== "active") {
+      return { success: false, error: "Game must be active to purchase" };
+    }
+    const item = getShopItem(itemId);
+    if (!item) {
+      return { success: false, error: "Item not found" };
+    }
+    if (player.coins < item.cost) {
+      return { success: false, error: "Insufficient coins" };
+    }
+    const enemyTeam = player.team === "iovine" ? "young" : "iovine";
+    if (item.purchaseType === "team") {
+      const teamUpgrades2 = this.state.teamUpgrades[player.team];
+      if (teamUpgrades2.some((pu) => pu.itemId === itemId)) {
+        return { success: false, error: "Team already owns this item" };
+      }
+      player.coins -= item.cost;
+      teamUpgrades2.push({
+        itemId,
+        purchasedAt: Date.now(),
+        purchasedBy: player.id
+      });
+      console.log(`Team ${player.team} purchased ${item.name} (bought by ${player.name})`);
+    } else if (item.instantScoreDamage) {
+      const damage = item.instantScoreDamage;
+      const reduction = this.state.scores[enemyTeam] * damage;
+      this.state.scores[enemyTeam] = Math.max(0, this.state.scores[enemyTeam] - reduction);
+      player.coins -= item.cost;
+      console.log(`${player.name} sabotaged Team ${enemyTeam} for ${reduction.toFixed(1)} points!`);
+    } else if (item.instantCoinSteal) {
+      const stealAmount = item.instantCoinSteal;
+      const victim = this.findRichestPlayer(enemyTeam);
+      if (victim) {
+        const actualSteal = Math.min(stealAmount, victim.coins);
+        victim.coins -= actualSteal;
+        player.coins -= item.cost;
+        player.coins += actualSteal;
+        console.log(`${player.name} stole ${actualSteal.toFixed(1)} coins from ${victim.name}!`);
+      } else {
+        return { success: false, error: "No valid target for heist" };
+      }
+    } else {
+      player.coins -= item.cost;
+      player.purchasedItems.push({
+        itemId,
+        purchasedAt: Date.now()
+      });
+      console.log(`${player.name} purchased ${item.name}`);
+    }
+    const teamUpgrades = this.state.teamUpgrades[player.team];
+    const stats = calculatePlayerStats(player, teamUpgrades, this.state);
+    return {
+      success: true,
+      newCoins: player.coins,
+      stats
+    };
+  }
+  findRichestPlayer(team) {
+    let richest = null;
+    let maxCoins = 0;
+    for (const player of this.state.players.values()) {
+      if (player.team === team && player.coins > maxCoins) {
+        richest = player;
+        maxCoins = player.coins;
+      }
+    }
+    return richest;
+  }
+  selectBuildPath(playerId, pathId) {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: "Player not found" };
+    }
+    player.selectedBuildPath = pathId;
+    console.log(`${player.name} selected build path: ${pathId}`);
+    return { success: true };
+  }
   getGameState() {
     const now = Date.now();
     const INACTIVE_THRESHOLD = 5000;
     const EMPTY_TEAM_RESET_THRESHOLD = 15000;
+    this.updatePassiveIncome();
     this.checkWarmupExpiration();
     this.checkWinCondition();
     const iovinePlayers = Array.from(this.state.players.values()).filter((p) => p.team === "iovine" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
@@ -22737,7 +23359,9 @@ class GameManager {
       winner: null,
       warmupStartTime: null,
       warmupDuration: 30000,
-      winThreshold: null
+      winThreshold: null,
+      teamUpgrades: { iovine: [], young: [] },
+      lastPassiveIncomeUpdate: Date.now()
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -22748,8 +23372,105 @@ class GameManager {
       young: false
     };
   }
+  debugUpdatePlayer(playerId, coins, clicks) {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: "Player not found" };
+    }
+    player.coins = Math.max(0, coins);
+    player.clicks = Math.max(0, clicks);
+    console.log(`[DEBUG] Updated ${player.name}: coins=${player.coins}, clicks=${player.clicks}`);
+    return { success: true };
+  }
 }
 var gameManager = new GameManager;
+
+// src/buildPaths.ts
+var BUILD_PATHS = [
+  {
+    id: "power-rush",
+    name: "Power Rush",
+    description: "Maximize personal click power early",
+    strategy: "Buy cheap multipliers immediately to get ahead. Focus on Starter → Power Surge → Mega Force. Ignore economy, just click fast and scale your points. Best for aggressive players who want immediate impact.",
+    icon: "⚡",
+    color: "yellow",
+    itemSequence: [
+      "starter-boost",
+      "power-surge",
+      "mega-force",
+      "ultra-power",
+      "god-mode"
+    ],
+    timeline: "Min 1: Starter (1.2x) → Min 2: Power Surge (1.8x) → Min 4: Mega Force (3.6x) → Min 6: Ultra Power (10.8x)"
+  },
+  {
+    id: "economist",
+    name: "Economist",
+    description: "Invest in coin generation for late-game power",
+    strategy: "Sacrifice early power for massive late game. Buy Penny Saver + Money Maker + Interest items to generate tons of coins. Around minute 4-5, cash out with big multipliers. Requires patience and planning.",
+    icon: "\uD83D\uDCB0",
+    color: "green",
+    itemSequence: [
+      "penny-saver",
+      "interest-i",
+      "money-maker",
+      "interest-ii",
+      "tycoon",
+      "ultra-power"
+    ],
+    timeline: "Min 1-3: Economy setup (1.5x → 2x → 3x coins) → Min 4-6: Cash out with high-tier power items"
+  },
+  {
+    id: "team-player",
+    name: "Team Player",
+    description: "Sacrifice personal power to buff entire team",
+    strategy: "Coordinate with teammates. You buy 1-2 team auras (Rally Cry, War Drums) to give everyone +10-20% boost. Your team will carry you if they buy personal multipliers. Works best with 5+ teammates.",
+    icon: "\uD83D\uDC65",
+    color: "purple",
+    itemSequence: [
+      "penny-saver",
+      "rally-cry",
+      "starter-boost",
+      "war-drums",
+      "power-surge"
+    ],
+    timeline: "Min 2-3: Rally Cry (team +10%) → Min 5: War Drums (team +20%) → Rest: personal boosts"
+  },
+  {
+    id: "balanced",
+    name: "Balanced",
+    description: "Mix of economy and power for flexibility",
+    strategy: "The safe pick. Buy cheap economy early (Penny Saver), then layer in power items (Starter, Power Surge, Mega Force). Adapts well to game state. Good for beginners or uncertain situations.",
+    icon: "⚖️",
+    color: "cyan",
+    itemSequence: [
+      "starter-boost",
+      "penny-saver",
+      "power-surge",
+      "money-maker",
+      "mega-force",
+      "ultra-power"
+    ],
+    timeline: "Mix throughout - always have economy + power scaling together. Flexible timing based on game state."
+  },
+  {
+    id: "aggressor",
+    name: "Aggressor",
+    description: "Attack enemy team with sabotage and disruption",
+    strategy: "Get basic economy, then spend on offensive items (Minor Sabotage, Heist, Major Sabotage). Reduce enemy score by 10-20% total and steal their coins. High risk, high reward. Best when you have a lead.",
+    icon: "⚔️",
+    color: "red",
+    itemSequence: [
+      "penny-saver",
+      "starter-boost",
+      "minor-sabotage",
+      "coin-heist",
+      "major-sabotage",
+      "devastate"
+    ],
+    timeline: "Min 1-2: Setup economy → Min 3: Minor Sabotage (enemy -5%) → Min 5: Major Sabotage (enemy -12%)"
+  }
+];
 
 // src/index.ts
 var app = import_express.default();
@@ -22791,7 +23512,7 @@ app.post("/api/click", (req, res) => {
   if (!result.success) {
     return res.status(404).json({ error: "Player not found" });
   }
-  res.json({ scores: result.scores, coins: result.coins });
+  res.json({ scores: result.scores, coins: result.coins, stats: result.stats });
 });
 app.post("/api/heartbeat", (req, res) => {
   const { playerId } = req.body;
@@ -22804,9 +23525,75 @@ app.post("/api/heartbeat", (req, res) => {
   }
   res.json({ success: true });
 });
+app.get("/api/shop", (req, res) => {
+  const { playerId } = req.query;
+  if (!playerId || typeof playerId !== "string") {
+    return res.status(400).json({ error: "Player ID is required" });
+  }
+  const gameState = gameManager.getGameState();
+  const player = Array.from(gameManager.state.players.values()).find((p) => p.id === playerId);
+  if (!player) {
+    return res.status(404).json({ error: "Player not found" });
+  }
+  const availableItems = getAvailableItems(player, gameManager.state);
+  res.json({
+    items: availableItems,
+    buildPaths: BUILD_PATHS,
+    playerCoins: player.coins,
+    selectedBuildPath: player.selectedBuildPath,
+    purchasedItems: player.purchasedItems.map((p) => p.itemId),
+    teamPurchasedItems: gameManager.state.teamUpgrades[player.team].map((t) => t.itemId)
+  });
+});
+app.post("/api/shop/purchase", (req, res) => {
+  const { playerId, itemId } = req.body;
+  if (!playerId || typeof playerId !== "string") {
+    return res.status(400).json({ error: "Player ID is required" });
+  }
+  if (!itemId || typeof itemId !== "string") {
+    return res.status(400).json({ error: "Item ID is required" });
+  }
+  const result = gameManager.purchaseItem(playerId, itemId);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+  res.json({
+    success: true,
+    newCoins: result.newCoins,
+    stats: result.stats
+  });
+});
+app.post("/api/shop/select-path", (req, res) => {
+  const { playerId, pathId } = req.body;
+  if (!playerId || typeof playerId !== "string") {
+    return res.status(400).json({ error: "Player ID is required" });
+  }
+  if (!pathId || typeof pathId !== "string") {
+    return res.status(400).json({ error: "Path ID is required" });
+  }
+  const result = gameManager.selectBuildPath(playerId, pathId);
+  if (!result.success) {
+    return res.status(404).json({ error: result.error });
+  }
+  res.json({ success: true });
+});
 app.post("/api/reset", (req, res) => {
   gameManager.resetGame();
   res.json({ message: "Game reset successfully" });
+});
+app.post("/api/debug/update-player", (req, res) => {
+  const { playerId, coins, clicks } = req.body;
+  if (!playerId || typeof playerId !== "string") {
+    return res.status(400).json({ error: "Player ID is required" });
+  }
+  if (typeof coins !== "number" || typeof clicks !== "number") {
+    return res.status(400).json({ error: "Coins and clicks must be numbers" });
+  }
+  const result = gameManager.debugUpdatePlayer(playerId, coins, clicks);
+  if (!result.success) {
+    return res.status(404).json({ error: result.error });
+  }
+  res.json({ success: true, coins, clicks });
 });
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });

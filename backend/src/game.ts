@@ -1,5 +1,7 @@
-import { GameState, Player, Team, GameStateResponse } from './types';
+import { GameState, Player, Team, GameStateResponse, PlayerStats, PurchasedItem } from './types';
 import { randomUUID } from 'crypto';
+import { calculatePlayerStats } from './multiplierEngine';
+import { getShopItem } from './shopCatalog';
 
 class GameManager {
   private state: GameState;
@@ -20,7 +22,9 @@ class GameManager {
       winner: null,
       warmupStartTime: null,
       warmupDuration: 30000, // 30 seconds
-      winThreshold: null
+      winThreshold: null,
+      teamUpgrades: { iovine: [], young: [] },
+      lastPassiveIncomeUpdate: Date.now()
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -51,7 +55,9 @@ class GameManager {
       clicks: 0,
       coins: 0,
       lastSeen: Date.now(),
-      activeEffects: []
+      activeEffects: [],
+      purchasedItems: [],
+      selectedBuildPath: undefined
     };
 
     this.state.players.set(player.id, player);
@@ -85,8 +91,8 @@ class GameManager {
 
   /**
    * Calculate win threshold based on team sizes
-   * Uses 1.5 power scaling: largestTeam^1.5 × 11,180
-   * 20 players = 1,000,000 points
+   * Linear formula: largestTeam × 4500
+   * Designed for 6-7 minute strategic games
    */
   private calculateWinThreshold(): number {
     const iovineCount = Array.from(this.state.players.values())
@@ -95,8 +101,8 @@ class GameManager {
       .filter(p => p.team === 'young').length;
     const largestTeam = Math.max(iovineCount, youngCount);
 
-    // Linear formula: 10k base + 5.5k per player on largest team
-    const threshold = 10000 + (largestTeam * 5500);
+    // Linear formula: largestTeam × 4500
+    const threshold = largestTeam * 4500;
 
     console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
@@ -139,29 +145,61 @@ class GameManager {
   /**
    * Register a click for a player
    */
-  registerClick(playerId: string): { success: boolean; scores: { iovine: number; young: number }; coins: number } {
+  registerClick(playerId: string): { success: boolean; scores: { iovine: number; young: number }; coins: number; stats: PlayerStats } {
     const player = this.state.players.get(playerId);
 
     if (!player) {
-      return { success: false, scores: this.state.scores, coins: 0 };
+      return {
+        success: false,
+        scores: this.state.scores,
+        coins: 0,
+        stats: {
+          totalClickMultiplier: 1,
+          totalCoinMultiplier: 1,
+          passiveIncomeRate: 0,
+          individualClickMultiplier: 1,
+          teamClickMultiplier: 1,
+          individualCoinMultiplier: 1,
+          teamCoinMultiplier: 1
+        }
+      };
     }
 
-    // Increment personal click counter
+    // Get team upgrades for this player's team
+    const teamUpgrades = this.state.teamUpgrades[player.team];
+
+    // Calculate multipliers
+    const stats = calculatePlayerStats(player, teamUpgrades, this.state);
+
+    // Increment personal click counter (always 1)
     player.clicks += 1;
 
-    // Increment coins (1:1 ratio for now, can be modified with multipliers later)
-    player.coins += 1;
+    // Apply multipliers to coins and score (NOW DECIMALS!)
+    const scoreValue = 1.0 * stats.totalClickMultiplier;
+    const coinValue = 1.0 * stats.totalCoinMultiplier;
 
+    console.log(`[CLICK] ${player.name} clicked! Score value: ${scoreValue} (multiplier: ${stats.totalClickMultiplier}x)`);
+    console.log(`[CLICK] Purchased items: ${player.purchasedItems.map(p => p.itemId).join(', ') || 'none'}`);
+
+    player.coins += coinValue;
     player.lastSeen = Date.now();
 
-    // Increment team score (1:1 for now, can be modified with multipliers later)
+    // Increment team score with multiplier
+    const oldScore = this.state.scores[player.team];
     if (player.team === 'iovine') {
-      this.state.scores.iovine += 1;
+      this.state.scores.iovine += scoreValue;
     } else {
-      this.state.scores.young += 1;
+      this.state.scores.young += scoreValue;
     }
+    console.log(`[CLICK] Team ${player.team} score: ${oldScore} -> ${this.state.scores[player.team]} (+${scoreValue})`);
 
-    return { success: true, scores: this.state.scores, coins: player.coins };
+
+    return {
+      success: true,
+      scores: this.state.scores,
+      coins: player.coins,
+      stats
+    };
   }
 
   /**
@@ -179,12 +217,164 @@ class GameManager {
   }
 
   /**
+   * Update all players' passive income
+   * Called every second from getGameState()
+   */
+  private updatePassiveIncome(): void {
+    const now = Date.now();
+    const lastUpdate = this.state.lastPassiveIncomeUpdate || now;
+    const elapsedSeconds = (now - lastUpdate) / 1000;
+
+    if (elapsedSeconds < 1) return; // only update every full second
+
+    // Only accrue during active phase
+    if (this.state.phase !== 'active') {
+      this.state.lastPassiveIncomeUpdate = now;
+      return;
+    }
+
+    for (const [playerId, player] of this.state.players) {
+      const teamUpgrades = this.state.teamUpgrades[player.team];
+      const stats = calculatePlayerStats(player, teamUpgrades, this.state);
+
+      if (stats.passiveIncomeRate > 0) {
+        const coinGain = stats.passiveIncomeRate * elapsedSeconds;
+        player.coins += coinGain;
+      }
+    }
+
+    this.state.lastPassiveIncomeUpdate = now;
+  }
+
+  /**
+   * Purchase a shop item
+   */
+  purchaseItem(playerId: string, itemId: string): { success: boolean; error?: string; newCoins?: number; stats?: PlayerStats } {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    if (this.state.phase !== 'active') {
+      return { success: false, error: 'Game must be active to purchase' };
+    }
+
+    const item = getShopItem(itemId);
+    if (!item) {
+      return { success: false, error: 'Item not found' };
+    }
+
+    // Check if player can afford
+    if (player.coins < item.cost) {
+      return { success: false, error: 'Insufficient coins' };
+    }
+
+    const enemyTeam: Team = player.team === 'iovine' ? 'young' : 'iovine';
+
+    // Handle different item types
+    if (item.purchaseType === 'team') {
+      // Check if team already owns it
+      const teamUpgrades = this.state.teamUpgrades[player.team];
+      if (teamUpgrades.some(pu => pu.itemId === itemId)) {
+        return { success: false, error: 'Team already owns this item' };
+      }
+
+      // Deduct coins and add to team upgrades
+      player.coins -= item.cost;
+      teamUpgrades.push({
+        itemId,
+        purchasedAt: Date.now(),
+        purchasedBy: player.id
+      });
+
+      console.log(`Team ${player.team} purchased ${item.name} (bought by ${player.name})`);
+    } else if (item.instantScoreDamage) {
+      // Sabotage item
+      const damage = item.instantScoreDamage;
+      const reduction = this.state.scores[enemyTeam] * damage;
+      this.state.scores[enemyTeam] = Math.max(0, this.state.scores[enemyTeam] - reduction);
+
+      player.coins -= item.cost;
+      console.log(`${player.name} sabotaged Team ${enemyTeam} for ${reduction.toFixed(1)} points!`);
+    } else if (item.instantCoinSteal) {
+      // Coin heist item
+      const stealAmount = item.instantCoinSteal;
+      const victim = this.findRichestPlayer(enemyTeam);
+
+      if (victim) {
+        const actualSteal = Math.min(stealAmount, victim.coins);
+        victim.coins -= actualSteal;
+        player.coins -= item.cost;
+        player.coins += actualSteal;
+
+        console.log(`${player.name} stole ${actualSteal.toFixed(1)} coins from ${victim.name}!`);
+      } else {
+        return { success: false, error: 'No valid target for heist' };
+      }
+    } else {
+      // Regular individual item
+      player.coins -= item.cost;
+      player.purchasedItems.push({
+        itemId,
+        purchasedAt: Date.now()
+      });
+
+      console.log(`${player.name} purchased ${item.name}`);
+    }
+
+    // Recalculate stats
+    const teamUpgrades = this.state.teamUpgrades[player.team];
+    const stats = calculatePlayerStats(player, teamUpgrades, this.state);
+
+    return {
+      success: true,
+      newCoins: player.coins,
+      stats
+    };
+  }
+
+  /**
+   * Find richest player on a team
+   */
+  private findRichestPlayer(team: Team): Player | null {
+    let richest: Player | null = null;
+    let maxCoins = 0;
+
+    for (const player of this.state.players.values()) {
+      if (player.team === team && player.coins > maxCoins) {
+        richest = player;
+        maxCoins = player.coins;
+      }
+    }
+
+    return richest;
+  }
+
+  /**
+   * Select a build path for a player
+   */
+  selectBuildPath(playerId: string, pathId: string): { success: boolean; error?: string } {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    player.selectedBuildPath = pathId;
+    console.log(`${player.name} selected build path: ${pathId}`);
+
+    return { success: true };
+  }
+
+  /**
    * Get current game state (only active players)
    */
   getGameState(): GameStateResponse {
     const now = Date.now();
     const INACTIVE_THRESHOLD = 5000; // 5 seconds
     const EMPTY_TEAM_RESET_THRESHOLD = 15000; // 15 seconds
+
+    // Update passive income for all players
+    this.updatePassiveIncome();
 
     // Check for phase transitions
     this.checkWarmupExpiration();
@@ -282,7 +472,9 @@ class GameManager {
       winner: null,
       warmupStartTime: null,
       warmupDuration: 30000,
-      winThreshold: null
+      winThreshold: null,
+      teamUpgrades: { iovine: [], young: [] },
+      lastPassiveIncomeUpdate: Date.now()
     };
     this.emptyTeamTimers = {
       iovine: null,
@@ -292,6 +484,23 @@ class GameManager {
       iovine: false,
       young: false
     };
+  }
+
+  /**
+   * Debug: Update player's coins and clicks directly
+   */
+  debugUpdatePlayer(playerId: string, coins: number, clicks: number): { success: boolean; error?: string } {
+    const player = this.state.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    player.coins = Math.max(0, coins);
+    player.clicks = Math.max(0, clicks);
+
+    console.log(`[DEBUG] Updated ${player.name}: coins=${player.coins}, clicks=${player.clicks}`);
+
+    return { success: true };
   }
 }
 

@@ -2,6 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { gameManager } from './game';
 import { Team } from './types';
+import { getAvailableItems, SHOP_CATALOG } from './shopCatalog';
+import { BUILD_PATHS } from './buildPaths';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -72,7 +74,7 @@ app.post('/api/click', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Player not found' });
   }
 
-  res.json({ scores: result.scores, coins: result.coins });
+  res.json({ scores: result.scores, coins: result.coins, stats: result.stats });
 });
 
 /**
@@ -97,12 +99,124 @@ app.post('/api/heartbeat', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/shop
+ * Get available shop items for a player
+ * Query params: playerId
+ */
+app.get('/api/shop', (req: Request, res: Response) => {
+  const { playerId } = req.query;
+
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'Player ID is required' });
+  }
+
+  const gameState = gameManager.getGameState();
+  // Find player in the raw internal state (not in response)
+  const player = Array.from((gameManager as any).state.players.values())
+    .find((p: any) => p.id === playerId);
+
+  if (!player) {
+    return res.status(404).json({ error: 'Player not found' });
+  }
+
+  const availableItems = getAvailableItems(player, (gameManager as any).state);
+
+  res.json({
+    items: availableItems,
+    buildPaths: BUILD_PATHS,
+    playerCoins: player.coins,
+    selectedBuildPath: player.selectedBuildPath,
+    purchasedItems: player.purchasedItems.map((p: any) => p.itemId),
+    teamPurchasedItems: (gameManager as any).state.teamUpgrades[player.team].map((t: any) => t.itemId)
+  });
+});
+
+/**
+ * POST /api/shop/purchase
+ * Purchase a shop item
+ * Body: { playerId: string, itemId: string }
+ */
+app.post('/api/shop/purchase', (req: Request, res: Response) => {
+  const { playerId, itemId } = req.body;
+
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'Player ID is required' });
+  }
+
+  if (!itemId || typeof itemId !== 'string') {
+    return res.status(400).json({ error: 'Item ID is required' });
+  }
+
+  const result = gameManager.purchaseItem(playerId, itemId);
+
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({
+    success: true,
+    newCoins: result.newCoins,
+    stats: result.stats
+  });
+});
+
+/**
+ * POST /api/shop/select-path
+ * Select a build path
+ * Body: { playerId: string, pathId: string }
+ */
+app.post('/api/shop/select-path', (req: Request, res: Response) => {
+  const { playerId, pathId } = req.body;
+
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'Player ID is required' });
+  }
+
+  if (!pathId || typeof pathId !== 'string') {
+    return res.status(400).json({ error: 'Path ID is required' });
+  }
+
+  const result = gameManager.selectBuildPath(playerId, pathId);
+
+  if (!result.success) {
+    return res.status(404).json({ error: result.error });
+  }
+
+  res.json({ success: true });
+});
+
+/**
  * POST /api/reset
  * Reset the game (for testing)
  */
 app.post('/api/reset', (req: Request, res: Response) => {
   gameManager.resetGame();
   res.json({ message: 'Game reset successfully' });
+});
+
+/**
+ * POST /api/debug/update-player
+ * Update player's coins and clicks (for debugging)
+ * Body: { playerId: string, coins: number, clicks: number }
+ */
+app.post('/api/debug/update-player', (req: Request, res: Response) => {
+  const { playerId, coins, clicks } = req.body;
+
+  if (!playerId || typeof playerId !== 'string') {
+    return res.status(400).json({ error: 'Player ID is required' });
+  }
+
+  if (typeof coins !== 'number' || typeof clicks !== 'number') {
+    return res.status(400).json({ error: 'Coins and clicks must be numbers' });
+  }
+
+  const result = gameManager.debugUpdatePlayer(playerId, coins, clicks);
+
+  if (!result.success) {
+    return res.status(404).json({ error: result.error });
+  }
+
+  res.json({ success: true, coins, clicks });
 });
 
 // Health check

@@ -1,3 +1,5 @@
+import { formatNumber } from "../utils/formatNumber";
+
 /**
  * TeamCard Component
  *
@@ -80,7 +82,7 @@ export function TeamCard({
         >
           <div className={`text-xs ${theme.text} mb-1`}>SCORE</div>
           <div className={`text-3xl font-bold ${theme.textBright} tabular-nums`}>
-            {score.toString().padStart(6, "0")}
+            {formatNumber(score)}
           </div>
         </div>
 
