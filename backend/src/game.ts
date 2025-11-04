@@ -91,8 +91,8 @@ class GameManager {
 
   /**
    * Calculate win threshold based on team sizes
-   * Linear formula: largestTeam × 2000
-   * Designed for ~3 minute games
+   * Linear formula: largestTeam × 500
+   * Designed for quick games
    */
   private calculateWinThreshold(): number {
     const iovineCount = Array.from(this.state.players.values())
@@ -101,8 +101,8 @@ class GameManager {
       .filter(p => p.team === 'young').length;
     const largestTeam = Math.max(iovineCount, youngCount);
 
-    // Linear formula: largestTeam × 2000
-    const threshold = largestTeam * 2000;
+    // Linear formula: largestTeam × 500
+    const threshold = largestTeam * 500;
 
     console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;

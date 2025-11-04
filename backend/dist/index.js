@@ -23108,7 +23108,7 @@ class GameManager {
     const iovineCount = Array.from(this.state.players.values()).filter((p) => p.team === "iovine").length;
     const youngCount = Array.from(this.state.players.values()).filter((p) => p.team === "young").length;
     const largestTeam = Math.max(iovineCount, youngCount);
-    const threshold = largestTeam * 2000;
+    const threshold = largestTeam * 500;
     console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
   }
