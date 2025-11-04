@@ -8,9 +8,10 @@ import { formatCoins } from "../utils/formatNumber";
 
 interface CurrencyDisplayProps {
   coins: number;
+  passiveIncomeRate?: number;
 }
 
-export function CurrencyDisplay({ coins }: CurrencyDisplayProps) {
+export function CurrencyDisplay({ coins, passiveIncomeRate = 0 }: CurrencyDisplayProps) {
   // Ensure coins is a valid number (default to 0 if undefined/null)
   const displayCoins = coins ?? 0;
 
@@ -25,6 +26,11 @@ export function CurrencyDisplay({ coins }: CurrencyDisplayProps) {
           <div className="text-2xl font-bold text-yellow-400 tabular-nums">
             {formatCoins(displayCoins)}
           </div>
+          {passiveIncomeRate > 0 && (
+            <div className="text-xs text-green-400 tracking-wide animate-pulse">
+              +{formatCoins(passiveIncomeRate)}/sec
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -100,8 +100,8 @@ export interface GameState {
 
 export interface GameStateResponse {
   players: {
-    iovine: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
-    young: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[] }>;
+    iovine: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[]; passiveIncomeRate: number }>;
+    young: Array<{ name: string; clicks: number; coins: number; activeEffects: ActiveEffect[]; passiveIncomeRate: number }>;
   };
   scores: {
     iovine: number;

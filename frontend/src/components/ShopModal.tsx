@@ -27,6 +27,9 @@ interface ShopItemData {
   purchaseType: string;
   category: string;
   tier?: number;
+  ownedByTeam?: boolean;
+  purchasedBy?: string;
+  purchasedByYou?: boolean;
 }
 
 interface BuildPath {
@@ -68,7 +71,9 @@ export function ShopModal({
         `${config.backendUrl}/api/shop?playerId=${playerId}`
       );
       const data = await response.json();
-      setShopItems(data.items || []);
+      // Combine regular items and owned team items
+      const allItems = [...(data.items || []), ...(data.ownedTeamItems || [])];
+      setShopItems(allItems);
       setBuildPaths(data.buildPaths || []);
       setPurchasedItems(data.purchasedItems || []);
       setTeamPurchasedItems(data.teamPurchasedItems || []);
@@ -196,6 +201,9 @@ export function ShopModal({
                           canAfford={!isLocked && coins >= item.cost}
                           onPurchase={() => onPurchase(item.id)}
                           isPurchased={isPurchased(item.id)}
+                          ownedByTeam={item.ownedByTeam}
+                          purchasedBy={item.purchasedBy}
+                          purchasedByYou={item.purchasedByYou}
                         />
                       ))}
                     </div>
@@ -247,6 +255,9 @@ export function ShopModal({
                             canAfford={!isLocked && coins >= item.cost}
                             onPurchase={() => onPurchase(item.id)}
                             isPurchased={isPurchased(item.id)}
+                            ownedByTeam={item.ownedByTeam}
+                            purchasedBy={item.purchasedBy}
+                            purchasedByYou={item.purchasedByYou}
                           />
                         ))}
                       </div>

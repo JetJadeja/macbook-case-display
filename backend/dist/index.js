@@ -23108,7 +23108,7 @@ class GameManager {
     const iovineCount = Array.from(this.state.players.values()).filter((p) => p.team === "iovine").length;
     const youngCount = Array.from(this.state.players.values()).filter((p) => p.team === "young").length;
     const largestTeam = Math.max(iovineCount, youngCount);
-    const threshold = largestTeam * 4500;
+    const threshold = largestTeam * 2000;
     console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
   }
@@ -23158,8 +23158,12 @@ class GameManager {
     player.clicks += 1;
     const scoreValue = 1 * stats.totalClickMultiplier;
     const coinValue = 1 * stats.totalCoinMultiplier;
-    console.log(`[CLICK] ${player.name} clicked! Score value: ${scoreValue} (multiplier: ${stats.totalClickMultiplier}x)`);
-    console.log(`[CLICK] Purchased items: ${player.purchasedItems.map((p) => p.itemId).join(", ") || "none"}`);
+    console.log(`[CLICK] ${player.name} (Team ${player.team}) clicked!`);
+    console.log(`  Score value: ${scoreValue.toFixed(2)} (multiplier: ${stats.totalClickMultiplier.toFixed(2)}x)`);
+    console.log(`  Individual click mult: ${stats.individualClickMultiplier.toFixed(2)}x, Team click mult: ${stats.teamClickMultiplier.toFixed(2)}x`);
+    console.log(`  Coin value: ${coinValue.toFixed(2)} (multiplier: ${stats.totalCoinMultiplier.toFixed(2)}x)`);
+    console.log(`  Individual coin mult: ${stats.individualCoinMultiplier.toFixed(2)}x, Team coin mult: ${stats.teamCoinMultiplier.toFixed(2)}x`);
+    console.log(`  Team upgrades count: ${teamUpgrades.length}`);
     player.coins += coinValue;
     player.lastSeen = Date.now();
     const oldScore = this.state.scores[player.team];
@@ -23231,7 +23235,17 @@ class GameManager {
         purchasedAt: Date.now(),
         purchasedBy: player.id
       });
-      console.log(`Team ${player.team} purchased ${item.name} (bought by ${player.name})`);
+      console.log(`
+========== TEAM UPGRADE PURCHASED ==========`);
+      console.log(`Team: ${player.team}`);
+      console.log(`Item: ${item.name} (${itemId})`);
+      console.log(`Buyer: ${player.name} (${player.id})`);
+      console.log(`Team Click Bonus: ${item.teamClickBonus || 0}`);
+      console.log(`Team Coin Bonus: ${item.teamCoinBonus || 0}`);
+      console.log(`Buyer Multiplier: ${item.buyerBonusMultiplier || 1}`);
+      console.log(`Total Team Upgrades: ${teamUpgrades2.length}`);
+      console.log(`==========================================
+`);
     } else if (item.instantScoreDamage) {
       const damage = item.instantScoreDamage;
       const reduction = this.state.scores[enemyTeam] * damage;
@@ -23293,8 +23307,28 @@ class GameManager {
     this.updatePassiveIncome();
     this.checkWarmupExpiration();
     this.checkWinCondition();
-    const iovinePlayers = Array.from(this.state.players.values()).filter((p) => p.team === "iovine" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
-    const youngPlayers = Array.from(this.state.players.values()).filter((p) => p.team === "young" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
+    const iovinePlayers = Array.from(this.state.players.values()).filter((p) => p.team === "iovine" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => {
+      const teamUpgrades = this.state.teamUpgrades[p.team];
+      const stats = calculatePlayerStats(p, teamUpgrades, this.state);
+      return {
+        name: p.name,
+        clicks: p.clicks,
+        coins: p.coins,
+        activeEffects: p.activeEffects,
+        passiveIncomeRate: stats.passiveIncomeRate
+      };
+    });
+    const youngPlayers = Array.from(this.state.players.values()).filter((p) => p.team === "young" && now - p.lastSeen < INACTIVE_THRESHOLD).map((p) => {
+      const teamUpgrades = this.state.teamUpgrades[p.team];
+      const stats = calculatePlayerStats(p, teamUpgrades, this.state);
+      return {
+        name: p.name,
+        clicks: p.clicks,
+        coins: p.coins,
+        activeEffects: p.activeEffects,
+        passiveIncomeRate: stats.passiveIncomeRate
+      };
+    });
     let resetCountdown = undefined;
     if (iovinePlayers.length === 0 && this.hasHadPlayers.iovine) {
       if (this.emptyTeamTimers.iovine === null) {
@@ -23536,13 +23570,40 @@ app.get("/api/shop", (req, res) => {
     return res.status(404).json({ error: "Player not found" });
   }
   const availableItems = getAvailableItems(player, gameManager.state);
+  const teamUpgrades = gameManager.state.teamUpgrades[player.team];
+  const teamPurchaseMap = new Map;
+  for (const upgrade of teamUpgrades) {
+    const purchaser = Array.from(gameManager.state.players.values()).find((p) => p.id === upgrade.purchasedBy);
+    teamPurchaseMap.set(upgrade.itemId, {
+      purchasedBy: purchaser ? purchaser.name : "Unknown",
+      purchasedByYou: upgrade.purchasedBy === playerId
+    });
+  }
+  const enhancedItems = availableItems.map((item) => {
+    const teamOwnership = teamPurchaseMap.get(item.id);
+    return {
+      ...item,
+      ownedByTeam: !!teamOwnership,
+      purchasedBy: teamOwnership?.purchasedBy,
+      purchasedByYou: teamOwnership?.purchasedByYou || false
+    };
+  });
+  const ownedTeamItems = SHOP_CATALOG.filter((item) => item.purchaseType === "team" && teamPurchaseMap.has(item.id)).map((item) => {
+    const ownership = teamPurchaseMap.get(item.id);
+    return {
+      ...item,
+      ownedByTeam: true,
+      purchasedBy: ownership.purchasedBy,
+      purchasedByYou: ownership.purchasedByYou
+    };
+  });
   res.json({
-    items: availableItems,
+    items: enhancedItems,
+    ownedTeamItems,
     buildPaths: BUILD_PATHS,
     playerCoins: player.coins,
     selectedBuildPath: player.selectedBuildPath,
-    purchasedItems: player.purchasedItems.map((p) => p.itemId),
-    teamPurchasedItems: gameManager.state.teamUpgrades[player.team].map((t) => t.itemId)
+    purchasedItems: player.purchasedItems.map((p) => p.itemId)
   });
 });
 app.post("/api/shop/purchase", (req, res) => {

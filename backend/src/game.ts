@@ -91,8 +91,8 @@ class GameManager {
 
   /**
    * Calculate win threshold based on team sizes
-   * Linear formula: largestTeam × 4500
-   * Designed for 6-7 minute strategic games
+   * Linear formula: largestTeam × 2000
+   * Designed for ~3 minute games
    */
   private calculateWinThreshold(): number {
     const iovineCount = Array.from(this.state.players.values())
@@ -101,8 +101,8 @@ class GameManager {
       .filter(p => p.team === 'young').length;
     const largestTeam = Math.max(iovineCount, youngCount);
 
-    // Linear formula: largestTeam × 4500
-    const threshold = largestTeam * 4500;
+    // Linear formula: largestTeam × 2000
+    const threshold = largestTeam * 2000;
 
     console.log(`Win threshold calculated: ${threshold} (Iovine: ${iovineCount}, Young: ${youngCount}, Largest: ${largestTeam})`);
     return threshold;
@@ -178,8 +178,12 @@ class GameManager {
     const scoreValue = 1.0 * stats.totalClickMultiplier;
     const coinValue = 1.0 * stats.totalCoinMultiplier;
 
-    console.log(`[CLICK] ${player.name} clicked! Score value: ${scoreValue} (multiplier: ${stats.totalClickMultiplier}x)`);
-    console.log(`[CLICK] Purchased items: ${player.purchasedItems.map(p => p.itemId).join(', ') || 'none'}`);
+    console.log(`[CLICK] ${player.name} (Team ${player.team}) clicked!`);
+    console.log(`  Score value: ${scoreValue.toFixed(2)} (multiplier: ${stats.totalClickMultiplier.toFixed(2)}x)`);
+    console.log(`  Individual click mult: ${stats.individualClickMultiplier.toFixed(2)}x, Team click mult: ${stats.teamClickMultiplier.toFixed(2)}x`);
+    console.log(`  Coin value: ${coinValue.toFixed(2)} (multiplier: ${stats.totalCoinMultiplier.toFixed(2)}x)`);
+    console.log(`  Individual coin mult: ${stats.individualCoinMultiplier.toFixed(2)}x, Team coin mult: ${stats.teamCoinMultiplier.toFixed(2)}x`);
+    console.log(`  Team upgrades count: ${teamUpgrades.length}`);
 
     player.coins += coinValue;
     player.lastSeen = Date.now();
@@ -287,7 +291,15 @@ class GameManager {
         purchasedBy: player.id
       });
 
-      console.log(`Team ${player.team} purchased ${item.name} (bought by ${player.name})`);
+      console.log(`\n========== TEAM UPGRADE PURCHASED ==========`);
+      console.log(`Team: ${player.team}`);
+      console.log(`Item: ${item.name} (${itemId})`);
+      console.log(`Buyer: ${player.name} (${player.id})`);
+      console.log(`Team Click Bonus: ${item.teamClickBonus || 0}`);
+      console.log(`Team Coin Bonus: ${item.teamCoinBonus || 0}`);
+      console.log(`Buyer Multiplier: ${item.buyerBonusMultiplier || 1}`);
+      console.log(`Total Team Upgrades: ${teamUpgrades.length}`);
+      console.log(`==========================================\n`);
     } else if (item.instantScoreDamage) {
       // Sabotage item
       const damage = item.instantScoreDamage;
@@ -383,11 +395,31 @@ class GameManager {
     // Filter only active players (seen in last 5 seconds)
     const iovinePlayers = Array.from(this.state.players.values())
       .filter(p => p.team === 'iovine' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
-      .map(p => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
+      .map(p => {
+        const teamUpgrades = this.state.teamUpgrades[p.team];
+        const stats = calculatePlayerStats(p, teamUpgrades, this.state);
+        return {
+          name: p.name,
+          clicks: p.clicks,
+          coins: p.coins,
+          activeEffects: p.activeEffects,
+          passiveIncomeRate: stats.passiveIncomeRate
+        };
+      });
 
     const youngPlayers = Array.from(this.state.players.values())
       .filter(p => p.team === 'young' && (now - p.lastSeen) < INACTIVE_THRESHOLD)
-      .map(p => ({ name: p.name, clicks: p.clicks, coins: p.coins, activeEffects: p.activeEffects }));
+      .map(p => {
+        const teamUpgrades = this.state.teamUpgrades[p.team];
+        const stats = calculatePlayerStats(p, teamUpgrades, this.state);
+        return {
+          name: p.name,
+          clicks: p.clicks,
+          coins: p.coins,
+          activeEffects: p.activeEffects,
+          passiveIncomeRate: stats.passiveIncomeRate
+        };
+      });
 
     let resetCountdown: number | undefined = undefined;
 

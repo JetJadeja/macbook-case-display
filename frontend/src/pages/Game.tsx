@@ -23,12 +23,14 @@ interface GameState {
       clicks: number;
       coins: number;
       activeEffects: ActiveEffect[];
+      passiveIncomeRate: number;
     }>;
     young: Array<{
       name: string;
       clicks: number;
       coins: number;
       activeEffects: ActiveEffect[];
+      passiveIncomeRate: number;
     }>;
   };
   scores: {
@@ -48,6 +50,7 @@ function Game() {
   const [personalClicks, setPersonalClicks] = useState(0);
   const [personalScore, setPersonalScore] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [passiveIncomeRate, setPassiveIncomeRate] = useState(0);
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -109,6 +112,7 @@ function Game() {
         const myPlayer = myTeamPlayers.find((p: any) => p.name === playerName);
         if (myPlayer) {
           setCoins(myPlayer.coins ?? 0);
+          setPassiveIncomeRate(myPlayer.passiveIncomeRate ?? 0);
           setActiveEffects(myPlayer.activeEffects ?? []);
         }
       }
@@ -141,6 +145,20 @@ function Game() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // Local passive income ticker - increments coins every second
+  useEffect(() => {
+    // Only run during active phase and if passive income > 0
+    if (gameState?.phase !== "active" || passiveIncomeRate <= 0) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCoins((prev) => prev + passiveIncomeRate);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gameState?.phase, passiveIncomeRate]);
 
   const sendHeartbeat = async (id: string) => {
     try {
@@ -335,6 +353,7 @@ function Game() {
             playerName={playerName}
             team={playerTeam}
             coins={coins}
+            passiveIncomeRate={passiveIncomeRate}
           />
 
           {/* Active Effects Bar */}

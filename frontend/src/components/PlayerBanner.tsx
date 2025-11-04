@@ -15,9 +15,10 @@ interface PlayerBannerProps {
   playerName: string;
   team: "iovine" | "young";
   coins: number;
+  passiveIncomeRate?: number;
 }
 
-export function PlayerBanner({ playerName, team, coins }: PlayerBannerProps) {
+export function PlayerBanner({ playerName, team, coins, passiveIncomeRate = 0 }: PlayerBannerProps) {
   const colors = {
     iovine: {
       gradient: "from-cyan-500 to-blue-500",
@@ -81,7 +82,7 @@ export function PlayerBanner({ playerName, team, coins }: PlayerBannerProps) {
 
         {/* Right side - Team indicator and coins */}
         <div className="flex items-center gap-4">
-          <CurrencyDisplay coins={coins} />
+          <CurrencyDisplay coins={coins} passiveIncomeRate={passiveIncomeRate} />
         </div>
       </div>
     </div>

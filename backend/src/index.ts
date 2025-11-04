@@ -121,13 +121,50 @@ app.get('/api/shop', (req: Request, res: Response) => {
 
   const availableItems = getAvailableItems(player, (gameManager as any).state);
 
+  // Get team purchased items with purchaser info
+  const teamUpgrades = (gameManager as any).state.teamUpgrades[player.team];
+  const teamPurchaseMap = new Map<string, { purchasedBy: string; purchasedByYou: boolean }>();
+
+  for (const upgrade of teamUpgrades) {
+    const purchaser = Array.from((gameManager as any).state.players.values())
+      .find((p: any) => p.id === upgrade.purchasedBy);
+    teamPurchaseMap.set(upgrade.itemId, {
+      purchasedBy: purchaser ? purchaser.name : 'Unknown',
+      purchasedByYou: upgrade.purchasedBy === playerId
+    });
+  }
+
+  // Enhance items with ownership info
+  const enhancedItems = availableItems.map((item: any) => {
+    const teamOwnership = teamPurchaseMap.get(item.id);
+    return {
+      ...item,
+      ownedByTeam: !!teamOwnership,
+      purchasedBy: teamOwnership?.purchasedBy,
+      purchasedByYou: teamOwnership?.purchasedByYou || false
+    };
+  });
+
+  // Also include team-owned items that were filtered out
+  const ownedTeamItems = SHOP_CATALOG
+    .filter(item => item.purchaseType === 'team' && teamPurchaseMap.has(item.id))
+    .map(item => {
+      const ownership = teamPurchaseMap.get(item.id)!;
+      return {
+        ...item,
+        ownedByTeam: true,
+        purchasedBy: ownership.purchasedBy,
+        purchasedByYou: ownership.purchasedByYou
+      };
+    });
+
   res.json({
-    items: availableItems,
+    items: enhancedItems,
+    ownedTeamItems: ownedTeamItems,
     buildPaths: BUILD_PATHS,
     playerCoins: player.coins,
     selectedBuildPath: player.selectedBuildPath,
-    purchasedItems: player.purchasedItems.map((p: any) => p.itemId),
-    teamPurchasedItems: (gameManager as any).state.teamUpgrades[player.team].map((t: any) => t.itemId)
+    purchasedItems: player.purchasedItems.map((p: any) => p.itemId)
   });
 });
 
