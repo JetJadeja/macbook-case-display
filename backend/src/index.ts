@@ -22,6 +22,37 @@ app.get('/api/game', (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/scoreboard
+ * Get scoreboard data for physical display
+ * Returns scores, phase, winner, winThreshold, and barPosition (-100 to +100)
+ */
+app.get('/api/scoreboard', (req: Request, res: Response) => {
+  const gameState = gameManager.getGameState();
+
+  // Calculate bar position (-100 to +100)
+  // -100 = Team Iovine winning (bar left)
+  // 0 = Tied (bar center)
+  // +100 = Team Young winning (bar right)
+  let barPosition = 0;
+
+  const totalScore = gameState.scores.iovine + gameState.scores.young;
+
+  if (totalScore > 0) {
+    const iovinePercent = gameState.scores.iovine / totalScore;
+    const youngPercent = gameState.scores.young / totalScore;
+    barPosition = Math.round((youngPercent - iovinePercent) * 100);
+  }
+
+  res.json({
+    scores: gameState.scores,
+    phase: gameState.phase,
+    winner: gameState.winner,
+    winThreshold: gameState.winThreshold,
+    barPosition
+  });
+});
+
+/**
  * POST /api/join
  * Join a team
  * Body: { name: string, team: 'iovine' | 'young' }
@@ -254,6 +285,28 @@ app.post('/api/debug/update-player', (req: Request, res: Response) => {
   }
 
   res.json({ success: true, coins, clicks });
+});
+
+/**
+ * POST /api/debug/set-scores
+ * Set team scores directly (for testing scoreboard)
+ * Body: { iovine: number, young: number, phase?: string, winThreshold?: number }
+ */
+app.post('/api/debug/set-scores', (req: Request, res: Response) => {
+  const { iovine, young, phase, winThreshold } = req.body;
+
+  if (typeof iovine !== 'number' || typeof young !== 'number') {
+    return res.status(400).json({ error: 'Iovine and young scores must be numbers' });
+  }
+
+  const result = gameManager.debugSetScores(iovine, young, phase, winThreshold);
+
+  res.json({
+    success: result.success,
+    scores: { iovine, young },
+    phase: phase || 'unchanged',
+    winThreshold: winThreshold || 'unchanged'
+  });
 });
 
 // Health check

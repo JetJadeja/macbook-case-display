@@ -23416,6 +23416,22 @@ class GameManager {
     console.log(`[DEBUG] Updated ${player.name}: coins=${player.coins}, clicks=${player.clicks}`);
     return { success: true };
   }
+  debugSetScores(iovine, young, phase, winThreshold) {
+    this.state.scores.iovine = Math.max(0, iovine);
+    this.state.scores.young = Math.max(0, young);
+    if (phase && ["waiting", "warmup", "active", "ended"].includes(phase)) {
+      this.state.phase = phase;
+    }
+    if (winThreshold !== undefined && winThreshold > 0) {
+      this.state.winThreshold = winThreshold;
+    }
+    console.log(`[DEBUG] Set scores - Iovine: ${this.state.scores.iovine}, Young: ${this.state.scores.young}`);
+    if (phase)
+      console.log(`[DEBUG] Set phase: ${this.state.phase}`);
+    if (winThreshold)
+      console.log(`[DEBUG] Set winThreshold: ${this.state.winThreshold}`);
+    return { success: true };
+  }
 }
 var gameManager = new GameManager;
 
@@ -23514,6 +23530,23 @@ app.use(import_express.default.json());
 app.get("/api/game", (req, res) => {
   const gameState = gameManager.getGameState();
   res.json(gameState);
+});
+app.get("/api/scoreboard", (req, res) => {
+  const gameState = gameManager.getGameState();
+  let barPosition = 0;
+  const totalScore = gameState.scores.iovine + gameState.scores.young;
+  if (totalScore > 0) {
+    const iovinePercent = gameState.scores.iovine / totalScore;
+    const youngPercent = gameState.scores.young / totalScore;
+    barPosition = Math.round((youngPercent - iovinePercent) * 100);
+  }
+  res.json({
+    scores: gameState.scores,
+    phase: gameState.phase,
+    winner: gameState.winner,
+    winThreshold: gameState.winThreshold,
+    barPosition
+  });
 });
 app.post("/api/join", (req, res) => {
   const { name, team } = req.body;
@@ -23655,6 +23688,19 @@ app.post("/api/debug/update-player", (req, res) => {
     return res.status(404).json({ error: result.error });
   }
   res.json({ success: true, coins, clicks });
+});
+app.post("/api/debug/set-scores", (req, res) => {
+  const { iovine, young, phase, winThreshold } = req.body;
+  if (typeof iovine !== "number" || typeof young !== "number") {
+    return res.status(400).json({ error: "Iovine and young scores must be numbers" });
+  }
+  const result = gameManager.debugSetScores(iovine, young, phase, winThreshold);
+  res.json({
+    success: result.success,
+    scores: { iovine, young },
+    phase: phase || "unchanged",
+    winThreshold: winThreshold || "unchanged"
+  });
 });
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });

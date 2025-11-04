@@ -534,6 +534,28 @@ class GameManager {
 
     return { success: true };
   }
+
+  /**
+   * Debug: Set scores directly for testing
+   */
+  debugSetScores(iovine: number, young: number, phase?: string, winThreshold?: number): { success: boolean } {
+    this.state.scores.iovine = Math.max(0, iovine);
+    this.state.scores.young = Math.max(0, young);
+
+    if (phase && ['waiting', 'warmup', 'active', 'ended'].includes(phase)) {
+      this.state.phase = phase as 'waiting' | 'warmup' | 'active' | 'ended';
+    }
+
+    if (winThreshold !== undefined && winThreshold > 0) {
+      this.state.winThreshold = winThreshold;
+    }
+
+    console.log(`[DEBUG] Set scores - Iovine: ${this.state.scores.iovine}, Young: ${this.state.scores.young}`);
+    if (phase) console.log(`[DEBUG] Set phase: ${this.state.phase}`);
+    if (winThreshold) console.log(`[DEBUG] Set winThreshold: ${this.state.winThreshold}`);
+
+    return { success: true };
+  }
 }
 
 export const gameManager = new GameManager();
